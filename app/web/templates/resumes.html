@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+{% block title %}Resumes · JobBot{% endblock %}
+{% block body %}
+
+{# ---- header + resume-builder entry point ------------------------------- #}
+<div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap">
+  <div>
+    <p class="eyebrow">Documents</p>
+    <h1 class="sg">Resumes &amp; cover letters</h1>
+    <p class="sub">JobBot scores every job against these. Upload more than one to target
+      different roles.</p>
+  </div>
+  <a class="btn" href="/resumes/builder"
+     style="background:linear-gradient(135deg,#6366f1,#22d3ee);color:#fff;box-shadow:0 10px 24px -10px rgba(99,102,241,.6)">
+    ✨ Resume builder
+  </a>
+</div>
+
+{# ---- upload "dropzone" card -------------------------------------------- #}
+<div class="card" style="background:var(--inset);border-style:dashed;border-color:var(--border-input)">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+    <span style="width:34px;height:34px;border-radius:10px;display:grid;place-items:center;flex:none;background:var(--info-bg);color:var(--blue);font-size:17px">⬆</span>
+    <h2 class="sg" style="margin:0;font-size:16px">Upload a document</h2>
+  </div>
+  <p class="sub" style="margin:6px 0 4px">Drop in your resume or cover letter ({{ supported }}).</p>
+  <form method="post" action="/resumes/upload" enctype="multipart/form-data">
+    <div class="row">
+      <div>
+        <label for="kind">Document type</label>
+        <select id="kind" name="kind">
+          <option value="resume">Resume</option>
+          <option value="cover_letter">Cover letter</option>
+        </select>
+      </div>
+      <div>
+        <label for="file">File ({{ supported }})</label>
+        <input id="file" name="file" type="file" required>
+      </div>
+    </div>
+    <button type="submit" style="margin-top:16px">Upload document</button>
+  </form>
+</div>
+
+{# ---- documents list ---------------------------------------------------- #}
+<h2 class="sg">Your documents</h2>
+{% if not docs %}
+  <div class="card center muted">
+    <div style="font-size:30px;line-height:1;margin-bottom:8px">📄</div>
+    <div style="font-weight:600;color:var(--text-2)">Nothing uploaded yet.</div>
+    <div style="margin-top:4px">Upload a resume above so your matches can be scored against it.</div>
+  </div>
+{% else %}
+  {% for d in docs %}
+    {% set ext = (d.filename.rsplit('.', 1)[1] | lower) if '.' in d.filename else '' %}
+    {% if ext == 'pdf' %}
+      {% set tile_bg = '#fee2e2' %}{% set tile_fg = '#b91c1c' %}{% set tile_label = 'PDF' %}
+    {% elif ext in ['docx', 'doc'] %}
+      {% set tile_bg = '#dbeafe' %}{% set tile_fg = '#1d4ed8' %}{% set tile_label = 'DOCX' %}
+    {% else %}
+      {% set tile_bg = 'var(--track)' %}{% set tile_fg = 'var(--muted)' %}{% set tile_label = (ext | upper) or 'FILE' %}
+    {% endif %}
+    <div class="card" style="display:flex;align-items:center;gap:16px;padding:16px 18px">
+      {# file-type tile #}
+      <span class="sg" style="width:46px;height:46px;flex:none;border-radius:12px;display:grid;place-items:center;font-size:11px;font-weight:700;letter-spacing:.03em;background:{{ tile_bg }};color:{{ tile_fg }}">
+        {{ tile_label }}
+      </span>
+      {# filename + meta #}
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span class="sg" style="font-weight:700;font-size:15px;color:var(--text);overflow-wrap:anywhere">{{ d.filename }}</span>
+          {% if d.kind == 'resume' %}
+            <span class="tag" style="background:var(--info-bg);color:var(--blue);border-color:var(--info-bd)">Resume</span>
+          {% else %}
+            <span class="tag">Cover letter</span>
+          {% endif %}
+        </div>
+        <div class="muted" style="font-size:13px;margin-top:4px">
+          {{ d.raw_text.split()|length }} words
+          {% if d.uploaded_at %} · uploaded {{ d.uploaded_at.strftime('%b %d, %Y') }}{% endif %}
+        </div>
+      </div>
+      {# score pill (graded resumes) #}
+      {% if d.kind == 'resume' and d.grade_json %}
+        {% set ov = d.grade_json.overall %}
+        <a class="rs-scorepill" href="/resumes?score={{ d.id }}#resume-score">
+          <span class="dot {{ 'g' if ov >= 80 else 'b' if ov >= 60 else 'o' }}"></span>Score {{ ov }}
+        </a>
+      {% endif %}
+      {# delete #}
+      <form method="post" action="/resumes/{{ d.id }}/delete"
+            onsubmit="return confirm('Delete {{ d.filename }}?')" style="flex:none">
+        <button class="btn danger small" type="submit">Delete</button>
+      </form>
+    </div>
+  {% endfor %}
+{% endif %}
+
+{# ---- RESUME SCORE: AI grade + how to raise it --------------------------- #}
+{% if score_docs %}
+<h2 class="sg" id="resume-score">Resume score</h2>
+<div class="card rs-card">
+  {% if score_docs|length > 1 %}
+    <div class="rs-tabs">
+      {% for d in score_docs %}
+        <a class="rs-tab {{ 'on' if score_doc and d.id == score_doc.id }}"
+           href="/resumes?score={{ d.id }}#resume-score">{{ d.filename }}</a>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% if grade %}
+    {% set cats = grade.categories or {} %}
+    <div class="rs-top">
+      <div class="hm-ring rs-ring">
+        <svg viewBox="0 0 120 120" aria-hidden="true">
+          <defs>
+            <linearGradient id="hmRingGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" style="stop-color:var(--blue)"/>
+              <stop offset="100%" style="stop-color:var(--cyan)"/>
+            </linearGradient>
+          </defs>
+          <circle class="ringtrack" cx="60" cy="60" r="54"/>
+          <circle class="ringval" cx="60" cy="60" r="54"
+                  stroke-dasharray="339.292"
+                  stroke-dashoffset="{{ '%.2f'|format(339.292 * (1 - (grade.overall or 0) / 100)) }}"/>
+        </svg>
+        <span class="mid"><span><b>{{ grade.overall }}</b><small>OF 100</small></span></span>
+      </div>
+      <div class="rs-headwrap">
+        <div class="rs-headline sg">{{ grade.headline }}</div>
+        <p class="rs-sub">Scored against the roles JobBot matches you with.
+          {%- if quick_wins %} The fixes below could add <b class="rs-gain">+{{ quick_wins }} pts</b>.{% endif %}</p>
+        <div class="rs-cats">
+          {% for key, label in [('impact', 'Impact & metrics'), ('ats', 'ATS & keywords'),
+                                ('structure', 'Structure & format'), ('clarity', 'Length & clarity')] %}
+            {% set v = cats.get(key, 0) %}
+            <div class="rs-cat">
+              <div class="rs-cat-line"><span>{{ label }}</span><b>{{ v }} / 25</b></div>
+              <div class="rs-bar"><i class="{{ 'g' if v >= 20 else 'b' if v >= 13 else 'o' }}" style="width:{{ (v / 25 * 100) | int }}%"></i></div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="rs-eyebrow">How to raise it</div>
+    <div class="rs-list">
+      {% for s in grade.suggestions %}
+        <div class="rs-row">
+          <span class="rs-chip {{ s.priority }}">{{ {'fix': 'Fix', 'improve': 'Improve', 'good': 'Good'}[s.priority] }}</span>
+          <div class="rs-body">
+            <div class="rs-title">{{ s.title }}</div>
+            {% if s.detail %}<div class="rs-detail">{{ s.detail }}</div>{% endif %}
+          </div>
+          {% if s.priority == 'good' %}<span class="rs-pts ok">✓</span>
+          {% elif s.points %}<span class="rs-pts">+{{ s.points }} pts</span>{% endif %}
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="rs-foot">
+      <a class="btn" href="/resumes/builder">✨ Fix these in the builder</a>
+      <span class="rs-note">Your score refreshes each time you upload a new version.</span>
+    </div>
+  {% elif score_doc %}
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
+      <p class="sub" style="margin:0">
+        <b style="color:var(--text)">{{ score_doc.filename }}</b> hasn't been graded yet.
+        Grading takes a few seconds and shows a 0–100 score with concrete fixes.
+      </p>
+      <form method="post" action="/resumes/{{ score_doc.id }}/grade" style="flex:none;margin:0">
+        <button type="submit">Grade this resume</button>
+      </form>
+    </div>
+  {% endif %}
+</div>
+{% endif %}
+
+{# ---- what the AI reads from the resume ---------------------------------- #}
+{% if ai_doc %}
+<h2 class="sg">What the AI sees</h2>
+<div class="card">
+  {% if ai_parsed %}
+    <p class="sub" style="margin:0 0 14px">
+      Your matches are scored against <b style="color:var(--text)">{{ ai_doc.filename }}</b>.
+      This is what the AI extracted from it — if it looks like you, your resume is being
+      read correctly. If something important is missing, it wasn't picked up from the file.
+    </p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+      {% if ai_parsed.seniority %}
+        <span class="tag" style="background:var(--info-bg);color:var(--blue);border-color:var(--info-bd)">Level: {{ ai_parsed.seniority }}</span>
+      {% endif %}
+      {% if ai_parsed.years_experience is not none %}
+        <span class="tag">{{ ai_parsed.years_experience }} yr{{ 's' if ai_parsed.years_experience != 1 }} experience</span>
+      {% endif %}
+      {% for t in ai_parsed.job_titles or [] %}<span class="tag">{{ t }}</span>{% endfor %}
+    </div>
+    {% if ai_parsed.skills %}
+      <div class="eyebrow" style="margin:0 0 6px">Skills it found</div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px">
+        {% for s in ai_parsed.skills %}
+          <span style="background:var(--ghost-bg);color:var(--ghost-fg);border-radius:7px;padding:3px 10px;font-size:13px;font-weight:600">{{ s }}</span>
+        {% endfor %}
+      </div>
+    {% endif %}
+    {% if ai_parsed.domains %}
+      <div class="muted" style="font-size:13px">Industries seen: {{ ai_parsed.domains | join(', ') }}</div>
+    {% endif %}
+  {% else %}
+    <p class="sub" style="margin:0">
+      <b style="color:var(--text)">{{ ai_doc.filename }}</b> is uploaded and is still being
+      read by the AI — this usually takes under a minute. Refresh this page to check;
+      once the extracted skills appear here, matching is using your resume.
+    </p>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

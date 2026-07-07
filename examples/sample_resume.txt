@@ -1,0 +1,13 @@
+Data analyst with 4 years of experience turning messy data into clear decisions.
+
+Skills: SQL, Python (pandas, numpy), Excel, Tableau, Power BI, data visualization,
+ETL and data pipelines, dashboards, KPI reporting, A/B testing, statistics.
+
+Experience:
+- Built and maintained executive dashboards in Tableau and Power BI for finance
+  and operations teams, tracking KPIs and revenue trends.
+- Wrote SQL queries and Python scripts to clean, join, and validate data pipelines
+  from multiple sources.
+- Reported weekly metrics and ad-hoc analyses that informed budgeting decisions.
+
+Education: Bachelor's degree in Statistics.

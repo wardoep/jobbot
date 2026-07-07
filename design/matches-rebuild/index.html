@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JobBot — Matches</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%232563EB'/%3E%3Cpath d='M6 5h12l3.4 5L12 21 2.6 10Z' fill='%23fff' transform='scale(.82) translate(2.6 .5)'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="shell">
+
+  <aside class="aside">
+    <div class="brand" data-action="nav-other" data-dest="Home" title="Home (not part of this rebuild)">
+      <span class="brand-mark"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 3h12l4 6-10 13L2 9Z" fill="#FFFFFF"></path><path d="M2 9h20M11 3 8 9l4 13 4-13-3-6" stroke="#2563EB" stroke-width="1.4" fill="none" stroke-linejoin="round" stroke-linecap="round"></path></svg></span>JobBot
+    </div>
+    <div class="nav-item" data-action="nav-other" data-dest="Home"><span>⌂</span> Home</div>
+    <div class="nav-item active"><span>◳</span> Matches</div>
+    <div class="nav-item" data-action="nav-other" data-dest="Resumes"><span>▤</span> Resumes</div>
+    <div class="nav-item" data-action="nav-other" data-dest="Preferences"><span>⚙</span> Preferences</div>
+    <div class="nav-item" data-action="nav-other" data-dest="Options"><span>☰</span> Options</div>
+    <div class="aside-spacer"></div>
+    <div class="aside-user nav-item" data-action="nav-other" data-dest="Options" title="Options (not part of this rebuild)">
+      <span class="avatar" id="avatar">J</span>
+      <div class="aside-user-meta"><div class="aside-user-name" id="user-name">Jordan</div><div class="aside-user-email" id="user-email">you@example.com</div></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="matches-page">
+
+      <div class="page-head">
+        <div>
+          <div class="eyebrow sg">5 new today</div>
+          <h1 class="sg" id="greeting">Morning, Jordan 👋</h1>
+        </div>
+        <button class="btn-primary sg" data-action="refresh">↻ Refresh my matches</button>
+      </div>
+
+      <div class="tabs" id="tabs">
+        <div class="tab sg" data-action="tab" data-tab="foryou">For you</div>
+        <div class="tab sg" data-action="tab" data-tab="saved">★ Saved · <span id="count-saved">0</span></div>
+        <div class="tab sg" data-action="tab" data-tab="applied">Applied · <span id="count-applied">0</span></div>
+        <div class="tab sg" data-action="tab" data-tab="refused">Refused · <span id="count-refused">0</span></div>
+      </div>
+
+      <div id="panel" class="rise"><!-- active tab content rendered by script.js --></div>
+
+    </div>
+  </main>
+
+</div>
+
+<div id="flash" class="flash" hidden></div>
+
+<script src="script.js"></script>
+</body>
+</html>

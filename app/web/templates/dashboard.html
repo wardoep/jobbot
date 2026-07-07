@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Dashboard · JobBot{% endblock %}
+{% block body %}
+<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+  <div>
+    <p class="eyebrow">Matches</p>
+    <h1 class="sg">Your matches</h1>
+    <p class="sub">Jobs that passed your filters, ranked by how well they fit your resume.</p>
+  </div>
+  <form method="post" action="/matches/refresh">
+    <button type="submit">↻ Refresh my matches</button>
+  </form>
+</div>
+
+{% if not has_resume %}
+  <div class="flash info">
+    You haven't uploaded a resume yet, so matches can't be scored.
+    <a href="/resumes">Upload one</a>, set your <a href="/preferences">preferences</a>,
+    then hit “Refresh my matches”.
+  </div>
+{% endif %}
+
+<div class="card" style="display:flex;gap:14px;align-items:center">
+  <a class="btn {% if not starred_only %}ghost{% endif %} small"
+     href="/dashboard">All ({{ rows|length if not starred_only else '…' }})</a>
+  <a class="btn {% if starred_only %}ghost{% endif %} small"
+     href="/dashboard?starred=1">★ Starred ({{ starred_count }})</a>
+</div>
+
+{% if not rows %}
+  <div class="card center muted">
+    {% if starred_only %}You haven't starred any jobs yet.
+    {% else %}No matches yet. Upload a resume, set preferences, then “Refresh my matches”.
+    {% endif %}
+  </div>
+{% endif %}
+
+{% for r in rows %}
+  <div class="match">
+    <div>
+      <div class="score">{{ '%.0f'|format(r.match.score) }}%<small>match</small></div>
+      <div class="bar"><i style="width: {{ r.match.score }}%"></i></div>
+    </div>
+    <div class="body">
+      <div class="title">
+        {% if r.is_new %}<span class="badge-new" title="Added in the last 24 hours">New</span> {% endif %}
+        {% if r.job.url %}<a href="{{ r.job.url }}" target="_blank" rel="noopener">{{ r.job.title }}</a>
+        {% else %}{{ r.job.title }}{% endif %}
+      </div>
+      <div class="meta">{{ r.job.company or 'Unknown company' }}</div>
+      <div class="meta" style="margin-top:6px">
+        {% if r.job.work_type %}<span class="tag">{{ r.job.work_type }}</span>{% endif %}
+        {% if r.job.location %}<span class="tag">{{ r.job.location }}</span>{% endif %}
+        {% if r.job.posted_date %}<span class="tag">posted {{ r.job.posted_date }}</span>{% endif %}
+        <span class="tag">{{ r.job.source }}</span>
+      </div>
+      <div style="margin-top:8px"><a href="/jobs/{{ r.job.id }}">✨ Tailor &amp; answer →</a></div>
+    </div>
+    <div>
+      {% with job_id=r.job.id, starred=r.starred %}{% include "_star_button.html" %}{% endwith %}
+    </div>
+  </div>
+{% endfor %}
+{% endblock %}

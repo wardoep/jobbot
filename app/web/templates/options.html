@@ -1,0 +1,325 @@
+{% extends "base.html" %}
+{% block title %}Options · JobBot{% endblock %}
+{% block body %}
+
+<style>
+  /* Options — matches the OPTIONS screen in JobBot.html (a stack of cards in a
+     centered column). Layout, order, spacing and hierarchy follow the design
+     literally; colours use the app's theme variables so the page stays on the
+     frozen dark theme (same call we made for the login page). Everything is
+     scoped to .opt-* / ".opt .card" so no other page is touched and no global
+     CSS is modified. */
+  .opt{ max-width:700px; margin:0 auto; }
+  .opt h1{ margin:0 0 5px; }
+  .opt-sub{ color:var(--muted); margin:0 0 22px; font-size:14px; line-height:1.55; }
+  .opt .card{ padding:22px 24px; }
+  .opt-h{ font-family:var(--font-display); font-weight:700; font-size:15px; margin:0 0 14px; }
+  .opt-cardsub{ color:var(--muted); font-size:13px; margin:0 0 16px; }
+
+  /* Account row (click to reveal the display-name form — the design's
+     "Edit profile" opens a modal; the app has no modal system, so this is a
+     native <details> disclosure over the same /options/profile form). */
+  .opt-account{ }
+  .opt-accountrow{
+    display:flex; align-items:center; gap:14px; cursor:pointer;
+    list-style:none;
+  }
+  .opt-accountrow::-webkit-details-marker{ display:none; }
+  .opt-avatar{
+    width:84px; height:84px; flex:none; border-radius:50%; overflow:hidden;
+    display:grid; place-items:center;
+    background:linear-gradient(135deg,#fda4af,#f59e0b);
+    color:#fff; font-family:var(--font-display); font-weight:700; font-size:32px;
+  }
+  .opt-avatar img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .opt-avatar[data-zoom]{ cursor:zoom-in; }
+
+  /* click-to-enlarge lightbox: fixed overlay; click the backdrop (or Esc) closes it */
+  .opt-lightbox{
+    position:fixed; inset:0; z-index:1000;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(6,10,20,.82); padding:24px;
+    animation:jbappear .15s ease;
+  }
+  .opt-lightbox[hidden]{ display:none; }
+  .opt-lightbox img{
+    max-width:min(90vw,460px); max-height:85vh;
+    border-radius:16px; box-shadow:0 30px 80px -20px rgba(0,0,0,.7);
+    display:block;
+  }
+  .opt-id{ flex:1; min-width:0; }
+  .opt-name{ font-family:var(--font-display); font-weight:700; font-size:15px; }
+  .opt-email{ color:var(--muted); font-size:13px; }
+  .opt-btn{ flex:none; padding:9px 15px; font-size:13px; border-radius:10px; }
+  .opt-editform{ margin-top:16px; }
+  .opt-avatarform{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:0; }
+  .opt-avatarform input[type=file]{ flex:1; min-width:180px; width:auto; }
+  .opt-avatarremove{ margin:8px 0 0; }
+
+  /* toggle rows (Notifications, Security) */
+  .opt-list{ display:flex; flex-direction:column; gap:15px; margin-top:10px; }
+  .opt-row{ display:flex; align-items:center; justify-content:space-between; gap:14px; }
+  .opt-label{ font-family:var(--font-display); font-weight:600; font-size:13.5px; }
+  .opt-desc{ font-size:12px; color:var(--text-2); margin-top:1px; }
+  .opt-bordered{ padding-bottom:16px; border-bottom:1px solid var(--border); }
+  .opt-badge{
+    background:var(--ghost-bg); color:var(--ghost-fg); border-radius:8px;
+    padding:5px 11px; font-size:12px; font-weight:700; white-space:nowrap;
+  }
+
+  /* field labels + theme segmented */
+  .opt-fieldlabel{
+    display:block; font-family:var(--font-display);
+    font-weight:600; font-size:13px; margin:0 0 8px;
+  }
+  .opt-theme{ display:flex; max-width:340px; margin-bottom:2px; }
+  .opt-theme .seg{ flex:1; justify-content:center; }
+
+  /* toggle switch (a submit button styled like the design's switch, so it keeps
+     the existing form POST contract — no client JS, no backend change) */
+  .opt-switch{
+    position:relative; width:42px; height:24px; flex:none; border:0; padding:0;
+    border-radius:999px; background:var(--switch-off); cursor:pointer;
+    transition:background .2s ease;
+  }
+  .opt-switch.on{ background:var(--blue); }
+  .opt-switch .opt-knob{
+    position:absolute; top:3px; left:3px; width:18px; height:18px;
+    border-radius:50%; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.2);
+    transition:left .2s ease;
+  }
+  .opt-switch.on .opt-knob{ left:21px; }
+  .opt-switch-form{ margin:0; flex:none; }
+
+  .opt-2fa-detail{ margin-top:14px; }
+  .opt-note{ font-size:11.5px; color:var(--faint); margin-top:8px; line-height:1.5; }
+
+  /* danger zone */
+  .opt-danger{ border-color:var(--red-bd); }
+  .opt-divider{ height:1px; background:var(--border); margin:16px 0; }
+  .opt-wrap-row{ flex-wrap:wrap; }
+</style>
+
+<div class="opt">
+
+  <h1 class="sg">Options</h1>
+  <p class="opt-sub">Your account, notifications, appearance and security.</p>
+
+  {# ------------------------------------------------------------- ACCOUNT #}
+  <div class="card">
+    <div class="opt-h sg">Account</div>
+    <details class="opt-account">
+      <summary class="opt-accountrow">
+        <div class="opt-avatar sg"{% if user.avatar_filename %} data-zoom="/options/avatar?v={{ user.avatar_filename }}" title="Click to enlarge"{% endif %}>
+          {% if user.avatar_filename %}
+            <img src="/options/avatar?v={{ user.avatar_filename }}" alt="Your profile picture">
+          {% else %}
+            {{ (user.display_name or user.email)[0]|upper }}
+          {% endif %}
+        </div>
+        <div class="opt-id">
+          <div class="opt-name sg">{{ user.display_name or user.email.split('@')[0] }}</div>
+          <div class="opt-email">{{ user.email }}</div>
+        </div>
+        <span class="btn secondary opt-btn sg">Edit profile</span>
+      </summary>
+      <div class="opt-editform">
+        <label class="opt-fieldlabel sg">Profile picture</label>
+        <form method="post" action="/options/avatar" enctype="multipart/form-data" class="opt-avatarform">
+          <input type="file" name="file" required
+                 accept="image/png,image/jpeg,image/gif,image/webp">
+          <button type="submit" class="btn small">{{ 'Replace picture' if user.avatar_filename else 'Upload picture' }}</button>
+        </form>
+        {% if user.avatar_filename %}
+        <form method="post" action="/options/avatar/remove" class="opt-avatarremove">
+          <button type="submit" class="btn secondary small">Remove picture</button>
+        </form>
+        {% endif %}
+        <p class="opt-note">PNG, JPG, GIF or WebP · up to 2 MB.</p>
+
+        <form method="post" action="/options/profile" style="margin-top:16px">
+          <label for="display_name">Display name</label>
+          <input type="text" id="display_name" name="display_name"
+                 value="{{ user.display_name or '' }}" placeholder="How should we greet you?">
+          <p class="opt-note">Shown in greetings around the app. Leave blank to use your email.</p>
+          <button type="submit" class="btn" style="margin-top:12px">Save</button>
+        </form>
+      </div>
+    </details>
+  </div>
+
+  {# ------------------------------------------------------- NOTIFICATIONS #}
+  <div class="card" id="telegram">
+    <div class="opt-h sg" style="margin-bottom:6px">Notifications</div>
+    <div class="opt-list">
+      <div class="opt-row">
+        <div>
+          <div class="opt-label sg">Email job alerts</div>
+          <div class="opt-desc">Get an email when new jobs match your preferences.</div>
+        </div>
+        {# a submit button styled as a switch: posts the OPPOSITE of the current
+           state, preserving the existing email_alerts=on/off contract #}
+        <form class="opt-switch-form" method="post" action="/options/notifications">
+          <input type="hidden" name="email_alerts" value="{{ 'off' if email_alerts else 'on' }}">
+          <button type="submit" class="opt-switch {{ 'on' if email_alerts else '' }}"
+                  aria-label="Toggle email job alerts"
+                  aria-pressed="{{ 'true' if email_alerts else 'false' }}">
+            <span class="opt-knob"></span>
+          </button>
+        </form>
+      </div>
+
+      {% if tg_ready %}
+      <div class="opt-row" style="align-items:flex-start">
+        <div>
+          <div class="opt-label sg">Telegram</div>
+          {% if user.telegram_chat_id %}
+            <div class="opt-desc">Connected ✓ — briefings, match pings and follow-up
+              nudges can reach you on Telegram. Pick what to send on the
+              <a href="/preferences">Preferences</a> page.</div>
+          {% else %}
+            <div class="opt-desc">
+              Connect once and JobBot can message you briefings, strong-match pings
+              and follow-up nudges.<br>
+              <b>1.</b> <a href="{{ tg_link }}" target="_blank" rel="noopener">Open @{{ tg_username }} in Telegram</a>
+              and press <b>Start</b> &nbsp;→&nbsp; <b>2.</b> come back and hit Verify.
+            </div>
+          {% endif %}
+        </div>
+        {% if user.telegram_chat_id %}
+          <form method="post" action="/options/telegram/disconnect" style="flex:none;margin:0">
+            <button type="submit" class="btn secondary small">Disconnect</button>
+          </form>
+        {% else %}
+          <form method="post" action="/options/telegram/verify" style="flex:none;margin:0">
+            <button type="submit" class="btn small">Verify connection</button>
+          </form>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# --------------------------------------------------------- APPEARANCE #}
+  <div class="card">
+    <div class="opt-h sg">Appearance</div>
+    <label class="opt-fieldlabel sg">Theme</label>
+    <div class="segmented opt-theme">
+      <a class="seg {% if theme == 'light' %}active{% endif %}" href="/theme?set=light">☀ Light</a>
+      <a class="seg {% if theme != 'light' %}active{% endif %}" href="/theme?set=dark">🌙 Dark</a>
+    </div>
+  </div>
+
+  {# ----------------------------------------------------------- SECURITY #}
+  <div class="card">
+    <div class="opt-h sg" style="margin-bottom:3px">Security</div>
+    <p class="opt-cardsub">How you sign in and protect your account.</p>
+
+    <div class="opt-row opt-bordered">
+      <div>
+        <div class="opt-label sg">Sign-in method</div>
+        <div class="opt-desc">Passwordless — a one-time code by email.</div>
+      </div>
+      <span class="opt-badge sg">✉ Email code</span>
+    </div>
+
+    <div class="opt-row" style="padding-top:16px">
+      <div>
+        <div class="opt-label sg">💬 SMS two-factor</div>
+        <div class="opt-desc">Require a texted code at sign-in. Recommended.</div>
+      </div>
+      {% if sms_enabled %}
+        <form class="opt-switch-form" method="post" action="/options/2fa/disable">
+          <button type="submit" class="opt-switch on"
+                  aria-label="Turn off SMS two-factor" aria-pressed="true">
+            <span class="opt-knob"></span>
+          </button>
+        </form>
+      {% else %}
+        {# off / mid-enrollment: the switch shows state; the guided flow is below,
+           because enabling SMS 2FA requires verifying the phone first #}
+        <span class="opt-switch" aria-hidden="true"><span class="opt-knob"></span></span>
+      {% endif %}
+    </div>
+
+    {% if sms_enabled %}
+      <div class="opt-2fa-detail">
+        <label class="opt-fieldlabel sg">Phone number for codes</label>
+        <input type="tel" value="{{ phone }}" readonly>
+        <div class="opt-note">Standard message rates may apply. You can turn this off anytime.</div>
+      </div>
+    {% elif awaiting_code %}
+      <div class="opt-2fa-detail">
+        <label class="opt-fieldlabel sg" for="code">Enter the code we texted to {{ pending_phone }}</label>
+        <form method="post" action="/options/2fa/verify">
+          <input type="text" id="code" name="code" inputmode="numeric" autocomplete="one-time-code"
+                 pattern="[0-9]*" maxlength="6" placeholder="123456" autofocus>
+          <button type="submit" class="btn" style="margin-top:12px">Verify &amp; turn on</button>
+        </form>
+        <form method="post" action="/options/2fa/cancel" style="margin-top:8px">
+          <button type="submit" class="btn secondary">Cancel</button>
+        </form>
+      </div>
+    {% else %}
+      <div class="opt-2fa-detail">
+        <label class="opt-fieldlabel sg" for="phone">Phone number for codes</label>
+        <form method="post" action="/options/2fa/start">
+          <input type="tel" id="phone" name="phone" autocomplete="tel" placeholder="(555) 012-3456">
+          <div class="opt-note">We'll text a 6-digit code to confirm the number before turning 2FA on.
+            Until a texting provider is configured the code is written to the server log (dry-run).</div>
+          <button type="submit" class="btn" style="margin-top:12px">Send code</button>
+        </form>
+      </div>
+    {% endif %}
+  </div>
+
+  {# --------------------------------------------------------- DANGER ZONE #}
+  <div class="card opt-danger">
+    <div class="opt-h sg" style="color:var(--red)">Danger zone</div>
+
+    <div class="opt-row opt-wrap-row">
+      <div>
+        <div class="opt-label sg">Sign out</div>
+        <div class="opt-desc">End your session on this device.</div>
+      </div>
+      <a class="btn secondary opt-btn sg" href="/logout">Sign out</a>
+    </div>
+
+    <div class="opt-divider"></div>
+
+    <form method="post" action="/options/delete-account"
+          onsubmit="return confirm('Permanently delete your account and all your data? This cannot be undone.')">
+      <div class="opt-row opt-wrap-row">
+        <div>
+          <div class="opt-label sg" style="color:var(--red)">Delete account</div>
+          <div class="opt-desc">Permanently remove your data.</div>
+        </div>
+        <button type="submit" class="btn danger opt-btn sg">Delete account</button>
+      </div>
+    </form>
+  </div>
+
+</div>
+
+{# enlarged-avatar lightbox (item 4) — vanilla JS, no dependencies #}
+<div class="opt-lightbox" id="avatarLightbox" hidden>
+  <img src="" alt="Profile picture enlarged">
+</div>
+<script>
+(function(){
+  var lb = document.getElementById('avatarLightbox');
+  if (!lb) return;
+  var img = lb.querySelector('img');
+  function open(src){ img.src = src; lb.hidden = false; document.body.style.overflow = 'hidden'; }
+  function close(){ lb.hidden = true; img.removeAttribute('src'); document.body.style.overflow = ''; }
+  document.querySelectorAll('.opt-avatar[data-zoom]').forEach(function(av){
+    av.addEventListener('click', function(e){
+      e.preventDefault(); e.stopPropagation();   // don't toggle the Edit-profile <details>
+      open(av.getAttribute('data-zoom'));
+    });
+  });
+  lb.addEventListener('click', function(e){ if (e.target === lb) close(); });  // click outside the image
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && !lb.hidden) close(); });
+})();
+</script>
+{% endblock %}

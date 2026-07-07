@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Create account · JobBot{% endblock %}
+{% block body %}
+<div class="auth card">
+  <p class="eyebrow center">Welcome to JobBot</p>
+  <h1 class="sg center">Create your account</h1>
+  {% if invalid %}
+    <p class="sub center" style="color:var(--red)">This invite link is invalid or has
+      already been used. Ask an admin for a new one.</p>
+  {% else %}
+    <p class="sub center">You were invited to JobBot. Confirm your details to finish — no
+      password needed, you'll sign in with an emailed code.</p>
+    <form method="post" action="/register">
+      <input type="hidden" name="token" value="{{ token }}">
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email"
+             value="{{ invite_email or '' }}"
+             {% if invite_email %}readonly{% endif %} required autofocus>
+      <label for="display_name">Display name <span class="muted">(optional)</span></label>
+      <input id="display_name" name="display_name" type="text"
+             placeholder="How should we greet you?" maxlength="120" autocomplete="name">
+      <button type="submit" class="btn block" style="margin-top:16px">Create account</button>
+    </form>
+  {% endif %}
+</div>
+{% endblock %}

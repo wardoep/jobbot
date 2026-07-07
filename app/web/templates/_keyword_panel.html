@@ -1,0 +1,61 @@
+<div id="kw-panel" hx-vals='js:{open: document.getElementById("kw-details")?.open ? 1 : 0}'>
+  {# hidden field so a full "Save preferences" preserves chip-managed keywords #}
+  <input type="hidden" name="keywords" value="{{ keywords|join(', ') }}">
+  {% set kwset = keywords|map('lower')|list %}
+
+  {% if auto_roles %}
+  <label class="pf-sec sg">Searched automatically from your resume <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0">· add keywords below to broaden</span></label>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
+    {% for role in auto_roles %}
+      <span style="background:var(--ghost-bg);color:var(--ghost-fg);border-radius:7px;padding:3px 10px;font-size:12.5px;font-weight:600">✨ {{ role }}</span>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <label class="pf-sec sg">Keywords</label>
+
+  {# Design's single bordered chips box: chips inline + a borderless input. Type a
+     keyword and press Enter to add (HTMX; saves instantly). #}
+  <div class="pf-chipbox" style="margin-bottom:12px">
+    {% for kw in keywords %}
+    <button type="button" class="kw-chip" name="kw" value="{{ kw }}"
+        title="Remove {{ kw }}" aria-label="Remove {{ kw }}"
+        hx-post="/preferences/keywords/remove" hx-target="#kw-panel"
+        hx-swap="outerHTML">{{ kw }}<span class="kw-x" aria-hidden="true">&times;</span></button>
+    {% endfor %}
+    <input id="kw-new" name="kw" type="text" autocomplete="off" class="pf-chipinput"
+           placeholder="Add a keyword…" data-suggest="/preferences/skills" list="kw-new-list"
+           hx-post="/preferences/keywords/add" hx-trigger="keydown[key=='Enter']"
+           hx-target="#kw-panel" hx-swap="outerHTML"
+           onkeydown="if(event.key==='Enter'){event.preventDefault();}">
+    <datalist id="kw-new-list"></datalist>
+  </div>
+
+  {# collapsible suggestion box (already the design's shaded box via .kw-details) #}
+  <details id="kw-details" class="kw-details" style="margin-bottom:2px" {% if details_open %}open{% endif %}>
+    <summary class="sg">
+      <span class="kw-sum-txt">
+        <span class="kw-sum-title">Not sure what to add?</span>
+        <span class="kw-sum-sub">Tap suggestions that match your experience and the roles you want.</span>
+      </span>
+    </summary>
+
+    {% if resume_skills %}
+    <div class="kw-group">
+      <div class="kw-group-label" style="color:var(--link)">✨ Based on your resume</div>
+      <div class="kw-chips">
+        {% for s in resume_skills %}{% if s|lower in kwset %}<button type="button" class="kw-sugg resume on" name="kw" value="{{ s }}" hx-post="/preferences/keywords/remove" hx-target="#kw-panel" hx-swap="outerHTML">✓ {{ s }}</button>{% else %}<button type="button" class="kw-sugg resume" name="kw" value="{{ s }}" hx-post="/preferences/keywords/add" hx-target="#kw-panel" hx-swap="outerHTML">+ {{ s }}</button>{% endif %}{% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% for label, chips in categories %}
+    <div class="kw-group">
+      <div class="kw-group-label">{{ label }}</div>
+      <div class="kw-chips">
+        {% for s in chips %}{% if s|lower in kwset %}<button type="button" class="kw-sugg on" name="kw" value="{{ s }}" hx-post="/preferences/keywords/remove" hx-target="#kw-panel" hx-swap="outerHTML">✓ {{ s }}</button>{% else %}<button type="button" class="kw-sugg" name="kw" value="{{ s }}" hx-post="/preferences/keywords/add" hx-target="#kw-panel" hx-swap="outerHTML">+ {{ s }}</button>{% endif %}{% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </details>
+</div>

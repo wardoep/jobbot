@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% from "_company_pic.html" import company_pic %}
+{% block title %}Insights · JobBot{% endblock %}
+{% block main_class %} hm-page{% endblock %}
+{% block body %}
+
+<p class="eyebrow">Your numbers</p>
+<h1 class="sg">Insights</h1>
+<p class="sub">A read-only snapshot of your search — matches, momentum, and where the best fits are coming from.</p>
+
+{% if kpis.total_matches == 0 %}
+  {# ---- whole-page empty state ------------------------------------------- #}
+  <div class="card center muted" style="padding:42px 22px">
+    <div style="font-size:30px;margin-bottom:8px">📊</div>
+    <div class="sg" style="font-weight:700;font-size:16px;color:var(--text);margin-bottom:4px">No insights yet</div>
+    <div style="max-width:420px;margin:0 auto">Once JobBot finds and scores some matches, you'll see your KPIs, a 7-day trend, your top companies, and how your scores break down — all here.</div>
+    <a class="btn ghost" href="/matches" style="margin-top:18px">Go to matches →</a>
+  </div>
+{% else %}
+
+  {# ---- KPI strip: six stats, one row on desktop -------------------------- #}
+  {% set kpicards = [
+    ('Total matches', kpis.total_matches, 'in your queue', 'var(--text)'),
+    ('New today', kpis.new_today, 'fresh in 24h', 'var(--blue)'),
+    ('Saved', kpis.saved, 'ready to tailor', 'var(--orange)'),
+    ('Applied', kpis.applied, 'in progress', 'var(--hm-num-cyan)'),
+    ('Refused', kpis.refused, 'passed on', 'var(--muted)'),
+    ('Avg score', (kpis.avg_score ~ '%'), 'mean fit', 'var(--green)')
+  ] %}
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:14px;margin-bottom:16px">
+    {% for label, value, sub, col in kpicards %}
+      <div class="card" style="margin:0;padding:16px 18px">
+        <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);font-weight:600">{{ label }}</div>
+        <div class="sg" style="font-weight:700;font-size:30px;letter-spacing:-.03em;margin-top:7px;color:{{ col }}">{{ value }}</div>
+        <div style="font-size:11.5px;color:var(--faint);font-weight:600;margin-top:2px">{{ sub }}</div>
+      </div>
+    {% endfor %}
+  </div>
+
+  {# ---- 7-day trend + score distribution -------------------------------- #}
+  {% set week_total = chart | sum(attribute='count') %}
+  <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px">
+    <div class="card" style="flex:1.4;min-width:320px;margin:0;display:flex;flex-direction:column">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px">
+        <div class="sg" style="font-weight:700;font-size:15px">Matches found · last 7 days</div>
+        <div style="font-weight:700;font-size:13px;color:var(--blue)">{{ week_total }} this week</div>
+      </div>
+      <div style="margin-top:auto;padding-top:18px">
+        <div style="display:flex;align-items:flex-end;gap:12px;height:150px">
+          {% for c in chart %}
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:6px;height:100%">
+              <div style="font-size:12px;font-weight:700;color:{{ 'var(--text)' if c.count else 'var(--faint)' }}">{{ c.count }}</div>
+              <div title="{{ c.count }} match(es)"
+                   style="width:100%;max-width:44px;height:{{ [c.pct, 3] | max }}%;border-radius:8px 8px 4px 4px;
+                          background:linear-gradient(180deg,var(--blue),var(--cyan));
+                          {% if not c.count %}opacity:.25;{% endif %}"></div>
+            </div>
+          {% endfor %}
+        </div>
+        <div style="display:flex;gap:12px;margin-top:8px">
+          {% for c in chart %}
+            <div style="flex:1;text-align:center;font-size:11px;font-weight:600;color:var(--faint)">{{ c.label }}</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="flex:1;min-width:280px;margin:0">
+      <div class="sg" style="font-weight:700;font-size:15px">Score distribution</div>
+      <div class="sub" style="margin:4px 0 0;font-size:13px">How your matches split across fit bands.</div>
+      <div style="margin-top:18px;display:flex;flex-direction:column;gap:15px">
+        {% for b in score_bands %}
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:6px">
+              <span style="color:var(--text-2);font-weight:600">{{ b.label }}%</span>
+              <span style="color:var(--text);font-weight:700">{{ b.count }}</span>
+            </div>
+            <div class="bar" style="width:100%"><i style="width:{{ b.pct }}%"></i></div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  {# ---- top companies: logo · name · bar · count ------------------------- #}
+  <div class="card" style="margin:0">
+    <div class="sg" style="font-weight:700;font-size:15px">Top companies</div>
+    <div class="sub" style="margin:4px 0 0;font-size:13px">Where most of your matches are coming from.</div>
+    {% if top_companies %}
+      {% set top_max = top_companies[0].count %}
+      <div style="margin-top:16px;display:flex;flex-direction:column">
+        {% for c in top_companies %}
+          <div style="display:flex;align-items:center;gap:14px;padding:10px 0;{% if not loop.last %}border-bottom:1px solid var(--border);{% endif %}">
+            {{ company_pic(loop.index0 % 6, c.name[0]|upper, c.name, none, 'sm') }}
+            <span style="flex:none;width:min(240px,32%);font-weight:700;font-size:14px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.name }}</span>
+            <div class="bar" style="flex:1"><i style="width:{{ (c.count / top_max * 100)|int }}%"></i></div>
+            <span style="flex:none;min-width:86px;text-align:right;color:var(--text-2);font-size:13px;font-weight:700">{{ c.count }} match{{ '' if c.count == 1 else 'es' }}</span>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="center muted" style="padding:18px 0">No company data yet — companies appear here as named matches roll in.</div>
+    {% endif %}
+  </div>
+
+  <script src="/static/logos.js"></script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,16 @@
+{# Unified company picture: a colored initial tile with the real logo layered
+   on top when it resolves (see static/logos.js). There is ALWAYS a picture —
+   company logo > source-website favicon > the letter tile.
+     idx     : 0-5 palette index for the tile color
+     initial : single letter shown until a logo loads
+     company : company name (for the logo lookup); may be blank
+     url     : the job's listing URL (its domain is the source-site fallback)
+     cls     : extra size class ('sm' | 'lg') #}
+{% macro company_pic(idx, initial, company, url, cls='') -%}
+<span class="mg-ava c{{ idx }} {{ cls }}">
+  <span class="ini">{{ initial }}</span>
+  <img class="mg-logo" alt=""
+       {% if company %}data-company="{{ company }}"{% endif %}
+       {% if url %}data-domain="{{ url | domain_of }}"{% endif %}>
+</span>
+{%- endmacro %}

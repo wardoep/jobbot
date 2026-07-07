@@ -1,0 +1,356 @@
+{% extends "base.html" %}
+{% block title %}Preferences · JobBot{% endblock %}
+{% block main_class %} hm-page{% endblock %}
+{% block body %}
+
+<style>
+  /* Preferences — three-column board (Skills & Keywords · Location & Role ·
+     Pay, Quality & Alerts), modelled on the reference layout. Frozen dark
+     theme + the app's own controls. Every backend field name preserved. */
+  .pf{ max-width:1240px; margin:0 auto; }
+  .pf-top{ display:flex; align-items:flex-end; justify-content:space-between; gap:16px; margin-bottom:16px; flex-wrap:wrap; }
+  .pf-top h1{ margin:0 0 3px; font-size:26px; }
+  .pf-sub{ color:var(--muted); margin:0; font-size:13.5px; }
+  .pf-actions{ display:flex; gap:10px; }
+  .pf-actions .btn.secondary, .pf-actions button{ padding:9px 16px; border-radius:11px; }
+
+  .pf-cols{ display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; align-items:start; }
+  @media (max-width:1080px){ .pf-cols{ grid-template-columns:1fr 1fr; } }
+  @media (max-width:720px){ .pf-cols{ grid-template-columns:1fr; } }
+  .pf-col{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-card); padding:18px; box-shadow:var(--shadow-card); }
+  .pf-coltitle{ font-family:var(--font-display); font-size:11px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); margin:0 0 14px; }
+  .pf-block{ margin-bottom:15px; }
+  .pf-block:last-child{ margin-bottom:0; }
+  .pf-sec{ display:block; font-family:var(--font-display); font-weight:600; font-size:12.5px; margin:0 0 7px; color:var(--text); }
+  .pf-hint{ font-size:11.5px; color:var(--text-2); margin:0 0 8px; line-height:1.45; }
+  .pf-help{ font-size:11.5px; color:var(--text-2); margin:6px 0 0; line-height:1.45; }
+  .pf-two{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+
+  .pf-chipbox{ display:flex; gap:7px; flex-wrap:wrap; align-items:center;
+    border:1px solid var(--border-input); border-radius:11px; padding:9px 11px; background:var(--surface); }
+  .pf-chipbox:focus-within{ border-color:var(--blue); box-shadow:0 0 0 3px var(--focus); }
+  .pf-chipinput{ flex:1; min-width:110px; width:auto; border:0; outline:0; box-shadow:none !important;
+    background:transparent; font:inherit; font-size:13px; padding:2px 0; margin:0; color:var(--text); }
+  .pf-seg{ flex-wrap:wrap; max-width:100%; }
+  .pf .optchips{ gap:6px; }
+  .pf .segctl label span{ padding:6px 11px; }
+
+  /* bigger input/select boxes (not the chip inputs or checkboxes/radios) */
+  .pf-col select,
+  .pf-col input:not(.pf-chipinput):not([type="checkbox"]):not([type="radio"]){
+    padding:12px 14px; font-size:14px; border-radius:11px; min-height:44px;
+  }
+  .pf-chipbox{ padding:11px 12px; }
+  .pf-chipinput{ font-size:14px; }
+  .pf .optchip span{ padding:8px 13px; font-size:13.5px; }
+
+  /* toggle switch (right column) */
+  .pf-toggle{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:9px 0; border-top:1px solid var(--border); }
+  .pf-toggle:first-of-type{ border-top:0; }
+  .pf-toggle .t-txt b{ display:block; font-size:13px; font-weight:600; color:var(--text); }
+  .pf-toggle .t-txt span{ font-size:11.5px; color:var(--text-2); }
+  .pf-switch{ position:relative; width:40px; height:22px; flex:none; }
+  .pf-switch input{ position:absolute; opacity:0; width:100%; height:100%; margin:0; cursor:pointer; }
+  .pf-switch .track{ position:absolute; inset:0; border-radius:999px; background:var(--switch-off); transition:background .15s ease; }
+  .pf-switch .track::after{ content:""; position:absolute; top:3px; left:3px; width:16px; height:16px; border-radius:50%; background:#fff; transition:transform .15s ease; }
+  .pf-switch input:checked + .track{ background:var(--blue); }
+  .pf-switch input:checked + .track::after{ transform:translateX(18px); }
+</style>
+
+<form method="post" action="/preferences">
+<div class="pf">
+
+  <div class="pf-top">
+    <div>
+      <h1 class="sg">Preferences</h1>
+      <p class="pf-sub">Tune what JobBot looks for — changes apply on your next refresh.</p>
+    </div>
+    <div class="pf-actions">
+      <a class="btn secondary" href="/dashboard">Cancel</a>
+      <button type="submit">Save preferences</button>
+    </div>
+  </div>
+
+  <div class="pf-cols">
+
+    {# ============================================ COLUMN 1 — SKILLS & KEYWORDS #}
+    <div class="pf-col">
+      <div class="pf-coltitle">Skills &amp; keywords</div>
+
+      <div class="pf-block">{% include "_keyword_panel.html" %}</div>
+
+      <div class="pf-block">
+        <label class="pf-sec sg" for="exclude_keywords">Exclude keywords</label>
+        <p class="pf-hint">Hide any job that mentions these.</p>
+        <input id="exclude_keywords" name="exclude_keywords" autocomplete="off"
+               data-suggest="/preferences/skills" list="exclude_keywords-list"
+               value="{{ (pref.exclude_keywords or []) | join(', ') }}" placeholder="e.g. clearance, unpaid">
+        <datalist id="exclude_keywords-list"></datalist>
+      </div>
+
+      <div class="pf-block">
+        <label class="pf-sec sg" for="block_companies">Block companies</label>
+        <p class="pf-hint">Never show roles from these employers.</p>
+        <input id="block_companies" name="block_companies" autocomplete="off"
+               data-suggest="/preferences/companies" list="block_companies-list"
+               value="{{ (pref.block_companies or []) | join(', ') }}" placeholder="e.g. Robert Half, Acme Corp">
+        <datalist id="block_companies-list"></datalist>
+      </div>
+    </div>
+
+    {# ============================================== COLUMN 2 — LOCATION & ROLE #}
+    <div class="pf-col">
+      <div class="pf-coltitle">Location &amp; role</div>
+
+      <div class="pf-block">
+        <label class="pf-sec sg" style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+          Location
+          <button type="button" id="use-location" class="kit-btn" style="font-size:11.5px">📍 Use my location</button>
+        </label>
+        <div id="geo-status" class="pf-hint" style="display:none;margin:0 0 6px"></div>
+        <div class="pf-two" style="margin-bottom:8px">
+          <select id="country" name="country" aria-label="Country">
+            <option value="">Any country</option>
+            {% for c in countries %}<option value="{{ c }}" {% if pref and pref.country == c %}selected{% endif %}>{{ c }}</option>{% endfor %}
+          </select>
+          <select id="state" name="state" aria-label="State / province">
+            <option value="">Any state</option>
+            {% for ab, name in states %}<option value="{{ ab }}" {% if sel_state == ab %}selected{% endif %}>{{ name }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="pf-two">
+          <input id="city" name="city" list="city-options" autocomplete="off"
+                 value="{{ city_display }}" placeholder="Pick a state first…" aria-label="City"
+                 {% if not sel_state %}disabled{% endif %}>
+          <select id="radius_miles" name="radius_miles" aria-label="Search radius">
+            {% set cur_r = (pref.radius_miles|string) if (pref and pref.radius_miles is not none) else '' %}
+            {% for v, l in radius_presets %}<option value="{{ v }}" {% if cur_r == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
+          </select>
+          <datalist id="city-options"></datalist>
+        </div>
+        <p class="pf-help">Pick a state, then optionally a city + radius to narrow to a commute. Remote jobs always show.</p>
+      </div>
+
+      <div class="pf-block">
+        <label class="pf-sec sg">Work type <span class="pf-hint" style="display:inline;margin:0">· pick any</span></label>
+        <div class="optchips" id="worktype" style="margin-top:5px">
+          <label class="optchip"><input type="checkbox" id="wt-any"><span>Any</span></label>
+          {% for wt in work_types_all %}
+          <label class="optchip">
+            <input type="checkbox" name="work_types" value="{{ wt }}" class="wt-real"
+              {% if pref and pref.work_types and wt in pref.work_types %}checked{% endif %}>
+            <span>{{ 'On-site' if wt == 'In-person' else wt }}</span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="pf-block">
+        <label class="pf-sec sg" for="seniority">Experience level</label>
+        <select id="seniority" name="seniority">
+          <option value="" {% if not pref or not pref.seniority %}selected{% endif %}>Any</option>
+          {% for s in seniorities %}
+          <option value="{{ s }}" {% if pref and pref.seniority == s %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="pf-block">
+        <label class="pf-sec sg" for="employment_type">Job type</label>
+        <select id="employment_type" name="employment_type">
+          <option value="" {% if not pref or not pref.employment_type %}selected{% endif %}>Any</option>
+          {% for e in employment_types %}
+          <option value="{{ e }}" {% if pref and pref.employment_type == e %}selected{% endif %}>{{ e }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="pf-block">
+        <label class="pf-sec sg" for="posted_within_days">Date posted</label>
+        <select id="posted_within_days" name="posted_within_days">
+          {% for val, label in posted_within %}
+          <option value="{{ val }}"
+            {% if pref and (pref.posted_within_days|string == val or (val == '' and pref.posted_within_days is none)) %}selected{% elif not pref and val == '' %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    {# ======================================== COLUMN 3 — PAY, QUALITY & ALERTS #}
+    <div class="pf-col">
+      <div class="pf-coltitle">Pay, quality &amp; alerts</div>
+
+      <div class="pf-block">
+        <label class="pf-sec sg" for="salary_min">Minimum salary</label>
+        {% set salary_presets = [('','Any'),('40000','$40k+'),('60000','$60k+'),('80000','$80k+'),('100000','$100k+'),('120000','$120k+'),('150000','$150k+'),('200000','$200k+')] %}
+        {% set cur_sal = (pref.salary_min|string) if (pref and pref.salary_min is not none) else '' %}
+        {% set sal_ns = namespace(preset=false) %}
+        {% for v, l in salary_presets %}{% if v == cur_sal %}{% set sal_ns.preset = true %}{% endif %}{% endfor %}
+        <select id="salary_min" name="salary_min">
+          {% for v, l in salary_presets %}<option value="{{ v }}" {% if cur_sal == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
+          {% if cur_sal and not sal_ns.preset %}<option value="{{ cur_sal }}" selected>${{ pref.salary_min }}</option>{% endif %}
+        </select>
+      </div>
+
+      <div class="pf-block">
+        <label class="pf-sec sg" for="digest_mode">Notify me about new matches</label>
+        <select id="digest_mode" name="digest_mode">
+          <option value="digest" {% if not pref or pref.digest_mode == 'digest' %}selected{% endif %}>Daily digest</option>
+          <option value="instant" {% if pref and pref.digest_mode == 'instant' %}selected{% endif %}>Instant — the moment a match appears</option>
+        </select>
+      </div>
+
+      <div class="pf-block">
+        <label class="pf-sec sg" for="alert_channels">Alerts</label>
+        {% set ch = (pref.alert_channels if pref and pref.alert_channels else []) %}
+        {% set has_email = 'email' in ch %}{% set has_tg = 'telegram' in ch %}
+        <select id="alert_channels" name="alert_channels">
+          <option value="dashboard" {% if not has_email and not has_tg %}selected{% endif %}>Dashboard only</option>
+          <option value="email" {% if has_email and not has_tg %}selected{% endif %}>Email + dashboard</option>
+          <option value="telegram" {% if has_tg and not has_email %}selected{% endif %}>Telegram + dashboard</option>
+          <option value="email+telegram" {% if has_email and has_tg %}selected{% endif %}>Email + Telegram + dashboard</option>
+        </select>
+        <p class="pf-help">Matches always show on your dashboard · email sends to {{ user.email }}
+          {%- if not user.telegram_chat_id %} · Telegram needs a one-time <a href="/options#telegram">connect in Options</a>{% endif %}.</p>
+      </div>
+
+      <div class="pf-block" style="border-top:1px solid var(--border);padding-top:6px;margin-top:4px">
+        <label class="pf-toggle">
+          <span class="t-txt"><b>Exclude staffing agencies</b><span>Skip recruiter &amp; agency listings</span></span>
+          <span class="pf-switch"><input type="checkbox" name="exclude_staffing" value="1" {% if pref and pref.exclude_staffing %}checked{% endif %}><span class="track"></span></span>
+        </label>
+      </div>
+
+      <div class="pf-block">
+        <label class="pf-sec sg" for="match_threshold">Only alert above this match %</label>
+        <input id="match_threshold" name="match_threshold" type="number" min="0" max="100"
+               value="{{ pref.match_threshold if pref else 0 }}" style="max-width:120px">
+      </div>
+    </div>
+  </div>
+
+  <input type="hidden" name="slack_webhook" value="{{ pref.slack_webhook if pref and pref.slack_webhook else '' }}">
+</div>
+</form>
+
+<script>
+(function () {
+  // Generic comma-aware autocomplete: suggests for the token after the last
+  // comma and, on pick, keeps the earlier tokens intact (native <datalist>).
+  function attachSuggest(input) {
+    if (input._suggestOn) return;  // avoid double-binding after HTMX swaps
+    input._suggestOn = true;
+    var dl = document.getElementById(input.getAttribute('list'));
+    var url = input.dataset.suggest;
+    if (!dl || !url) return;
+    var timer;
+    input.addEventListener('input', function () {
+      clearTimeout(timer);
+      var val = input.value;
+      var cut = val.lastIndexOf(',');
+      var prefix = cut >= 0 ? val.slice(0, cut + 1) + ' ' : '';
+      var token = (cut >= 0 ? val.slice(cut + 1) : val).trim();
+      if (token.length < (url.indexOf('companies') >= 0 ? 2 : 1)) { dl.innerHTML = ''; return; }
+      timer = setTimeout(function () {
+        fetch(url + '?q=' + encodeURIComponent(token))
+          .then(function (r) { return r.json(); })
+          .then(function (list) {
+            dl.innerHTML = (list || []).map(function (x) {
+              // option value = earlier tokens + this suggestion, so picking it
+              // completes the current token without dropping the others.
+              return '<option value="' + (prefix + x).replace(/"/g, '&quot;') + '">';
+            }).join('');
+          }).catch(function () {});
+      }, 130);
+    });
+  }
+  // Work type is MULTI-select (pick Remote + Hybrid, etc). The "Any" chip
+  // means "no filter": picking it clears the specific ones, and it lights up
+  // whenever none of the specific ones are chosen.
+  var wtAny = document.getElementById('wt-any');
+  var wtReals = Array.prototype.slice.call(document.querySelectorAll('.wt-real'));
+  function wtSync() { if (wtAny) wtAny.checked = !wtReals.some(function (r) { return r.checked; }); }
+  if (wtAny) {
+    wtAny.addEventListener('change', function () {
+      if (wtAny.checked) wtReals.forEach(function (r) { r.checked = false; });
+      else if (!wtReals.some(function (r) { return r.checked; })) wtAny.checked = true;
+    });
+    wtReals.forEach(function (r) { r.addEventListener('change', wtSync); });
+    wtSync();
+  }
+
+  function bindSuggests() { document.querySelectorAll('input[data-suggest]').forEach(attachSuggest); }
+  bindSuggests();
+  // The keyword panel re-renders via HTMX; re-bind autocomplete after each swap.
+  document.body.addEventListener('htmx:afterSwap', bindSuggests);
+
+  // "Use my location": browser geolocation (permission-gated) -> offline
+  // reverse geocode -> fill country/state/city (+ a 50mi default radius).
+  // Coordinates are used once for the lookup and never stored.
+  var geoBtn = document.getElementById('use-location');
+  var geoStatus = document.getElementById('geo-status');
+  function geoSay(msg, ok) {
+    if (!geoStatus) return;
+    geoStatus.style.display = 'block';
+    geoStatus.style.color = ok ? 'var(--green)' : 'var(--amber)';
+    geoStatus.textContent = msg;
+  }
+  if (geoBtn) geoBtn.addEventListener('click', function () {
+    if (!navigator.geolocation) { geoSay('Your browser doesn\'t support location.', false); return; }
+    geoBtn.disabled = true; geoSay('Asking your browser for your location…', true);
+    navigator.geolocation.getCurrentPosition(function (pos) {
+      fetch('/preferences/geolocate?lat=' + pos.coords.latitude + '&lng=' + pos.coords.longitude)
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          geoBtn.disabled = false;
+          if (!d.ok) { geoSay(d.error || 'Couldn\'t place you.', false); return; }
+          var country = document.getElementById('country');
+          var state = document.getElementById('state');
+          var city = document.getElementById('city');
+          var radius = document.getElementById('radius_miles');
+          if (country && d.country) country.value = d.country;
+          if (state && d.state) { state.value = d.state; state.dispatchEvent(new Event('change')); }
+          if (city && d.city) { city.disabled = false; city.value = d.city; }
+          if (radius && !radius.value) radius.value = '50';
+          geoSay('Found you: ' + d.city + ', ' + d.state.toUpperCase() + ' — review and hit Save.', true);
+        })
+        .catch(function () { geoBtn.disabled = false; geoSay('Lookup failed — try again.', false); });
+    }, function (err) {
+      geoBtn.disabled = false;
+      geoSay(err.code === 1 ? 'Location permission was denied — you can still type your city.' : 'Couldn\'t get your location.', false);
+    }, { timeout: 12000, maximumAge: 300000 });
+  });
+
+  // City autocomplete — cities WITHIN the chosen state only (plain names, no
+  // ", ST" suffix). City is locked until a state is picked.
+  var input = document.getElementById('city');
+  var dl = document.getElementById('city-options');
+  var state = document.getElementById('state');
+  var country = document.getElementById('country');
+  function syncCityLock() {
+    if (!input || !state) return;
+    var on = !!state.value;
+    input.disabled = !on;
+    input.placeholder = on ? 'City (optional)…' : 'Pick a state first…';
+    if (!on) { input.value = ''; if (dl) dl.innerHTML = ''; }
+  }
+  if (state) state.addEventListener('change', syncCityLock);
+  if (input && dl) {
+    var ctimer;
+    input.addEventListener('input', function () {
+      clearTimeout(ctimer);
+      var q = input.value.trim();
+      if (q.length < 2 || !state.value) { dl.innerHTML = ''; return; }
+      ctimer = setTimeout(function () {
+        var c = country ? country.value : '';
+        fetch('/preferences/cities?q=' + encodeURIComponent(q) + '&country=' + encodeURIComponent(c) + '&state=' + encodeURIComponent(state.value))
+          .then(function (r) { return r.json(); })
+          .then(function (list) {
+            dl.innerHTML = (list || []).map(function (x) { return '<option value="' + x.replace(/"/g, '&quot;') + '">'; }).join('');
+          }).catch(function () {});
+      }, 140);
+    });
+  }
+})();
+</script>
+{% endblock %}

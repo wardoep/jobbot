@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en" data-theme="{{ theme or 'dark' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}JobBot{% endblock %}</title>
+  <link rel="stylesheet" href="/static/fonts.css?v={{ asset_v }}">
+  <link rel="stylesheet" href="/static/style.css?v={{ asset_v }}">
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+</head>
+<body class="{% if user %}has-shell{% endif %}">
+  {% if user %}
+  <aside class="jb-aside">
+    <a class="jb-logo" href="/dashboard">
+      <span class="gem" style="width:28px;height:28px;border-radius:9px;display:grid;place-items:center;background:linear-gradient(135deg,#6366f1,#0d9488);flex:none">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M6 3h12l4 6-10 13L2 9Z" fill="#FFFFFF"/>
+          <path d="M2 9h20M11 3 8 9l4 13 4-13-3-6" stroke="#6366f1" stroke-width="1.4" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+        </svg>
+      </span>
+      <b class="sg">JobBot</b>
+    </a>
+    <nav>
+      <a class="jb-nav {% if request.url.path == '/dashboard' %}active{% endif %}" href="/dashboard"><span class="jb-ico">⌂</span> Home</a>
+      <a class="jb-nav {% if request.url.path.startswith('/matches') %}active{% endif %}" href="/matches"><span class="jb-ico">▦</span> Matches</a>
+      <a class="jb-nav {% if request.url.path.startswith('/insights') %}active{% endif %}" href="/insights"><span class="jb-ico">◔</span> Insights</a>
+      <a class="jb-nav {% if request.url.path.startswith('/resumes') %}active{% endif %}" href="/resumes"><span class="jb-ico">▤</span> Resumes</a>
+      <a class="jb-nav {% if request.url.path.startswith('/preferences') %}active{% endif %}" href="/preferences"><span class="jb-ico">⚙</span> Preferences</a>
+      <a class="jb-nav {% if request.url.path.startswith('/options') %}active{% endif %}" href="/options"><span class="jb-ico">☰</span> Options</a>
+      {% if user.role == 'admin' %}
+      <a class="jb-nav {% if request.url.path.startswith('/admin') %}active{% endif %}" href="/admin"><span class="jb-ico">◆</span> Admin</a>
+      {% endif %}
+    </nav>
+    <div class="jb-spacer"></div>
+    <div class="jb-user">
+      <a class="jb-user-avatar" href="/options" title="Account settings" aria-label="Account settings">
+        <span class="avatar">
+          {% if user.avatar_filename %}<img src="/options/avatar?v={{ user.avatar_filename }}" alt="">{% else %}{{ (user.email[0]|upper) if user.email else '?' }}{% endif %}
+        </span>
+      </a>
+      <div class="jb-user-info">
+        <a class="jb-user-email jb-user-account" href="/options" title="Account settings">{{ user.email }}</a>
+        <a href="/logout">Log out</a>
+      </div>
+    </div>
+  </aside>
+  {% endif %}
+
+  <main class="{% if user %}jb-main{% else %}jb-plain{% endif %}{% block main_class %}{% endblock %}">
+    {% for f in flashes %}<div class="flash {{ f.c }}">{{ f.m }}</div>{% endfor %}
+    {% block body %}{% endblock %}
+  </main>
+</body>
+</html>

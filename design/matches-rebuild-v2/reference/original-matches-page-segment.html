@@ -1,0 +1,265 @@
+<!doctype html>
+<!--
+  JobBot — "Matches" tab (dark theme) — standalone rebuild segment
+  ================================================================
+  Vanilla HTML + CSS, no framework, no dependencies. Open this file directly
+  to preview, or copy the pieces into your site:
+
+    1. The <style> block          -> your stylesheet
+    2. <header class="nav">       -> your site chrome
+    3. <main> content             -> the matches tab itself
+
+  Kept in sync with "JobBot v2.dc.html" (dark theme). Each queue row is
+  one <article class="match">. To render real data, loop over your matches and
+  fill in: --p (score %), the score number, title, company line, salary, the
+  New pill, the Applied chip, and the star state (class "on").
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your matches · JobBot</title>
+<style>
+:root{
+  --bg:#0A1426;          /* page background */
+  --card:#111C2E;        /* card surface */
+  --line:#1E2D45;        /* borders / hairlines */
+  --ink:#F8FAFC;         /* primary text */
+  --muted:#64748B;       /* secondary text */
+  --sub:#94A3B8;         /* tertiary text */
+  --brand:#6366f1;       /* indigo brand */
+  --brand-dk:#A5B4FC;    /* indigo, lighter on dark */
+  --good:#4ADE80;        /* salary green */
+  --star:#FB923C;
+  --track:#1E2D45;       /* ring track / chip bg */
+  --shadow:0 1px 2px rgba(0,0,0,.2), 0 10px 28px -14px rgba(0,0,0,.5);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:15px/1.55 -apple-system,system-ui,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+
+/* ============ top nav ============ */
+header.nav{background:rgba(13,27,46,.92);backdrop-filter:saturate(1.4) blur(10px);
+  -webkit-backdrop-filter:saturate(1.4) blur(10px);
+  border-bottom:1px solid var(--line);display:flex;align-items:center;gap:18px;
+  padding:12px 26px;position:sticky;top:0;z-index:40}
+.brand{font-weight:800;font-size:19px;letter-spacing:-.02em;display:flex;align-items:center;gap:8px;flex:none;cursor:pointer}
+.brand .dot{width:27px;height:27px;border-radius:9px;display:grid;place-items:center;
+  background:linear-gradient(135deg,#6366f1,#0d9488);box-shadow:0 4px 12px -3px rgba(99,102,241,.55)}
+.brand .dot svg{display:block}
+.brand b{color:var(--brand-dk)}
+nav.links{display:flex;gap:6px;flex:1;min-width:0;overflow-x:auto;align-items:center}
+nav.links a{padding:7px 13px;border-radius:9px;color:var(--muted);font-weight:600;font-size:14px;
+  text-decoration:none;white-space:nowrap}
+nav.links a.active{background:var(--line);color:var(--brand-dk);box-shadow:none}
+nav.links a:hover{background:var(--line)}
+.who{display:flex;align-items:center;gap:10px;padding:5px 8px;border-radius:10px;cursor:pointer;flex:none}
+.who:hover{background:var(--line)}
+.who .meta{font-size:12px;line-height:1.3}
+.who .email{color:var(--muted)}
+.avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#fda4af,#f59e0b);
+  color:#fff;display:grid;place-items:center;font-weight:700;font-size:13px}
+
+/* ============ page frame ============ */
+main{max-width:920px;margin:0 auto;padding:34px 40px 64px}
+.eyebrow{font-weight:600;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+h1{font-weight:700;font-size:34px;letter-spacing:-.03em;margin:0}
+.head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:22px}
+.btn{display:inline-flex;align-items:center;gap:8px;background:var(--brand);color:#fff;border:0;
+  padding:12px 18px;border-radius:12px;font-weight:600;font-size:14px;cursor:pointer;
+  box-shadow:0 6px 16px -6px rgba(99,102,241,.5)}
+.tabs{display:flex;gap:22px;border-bottom:1px solid var(--line);margin-bottom:20px}
+.tabs a{padding:0 0 12px;font-weight:600;font-size:14px;color:var(--sub);text-decoration:none}
+.tabs a.on{color:var(--ink);box-shadow:inset 0 -2px 0 var(--brand)}
+.section-label{font-weight:600;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:24px 0 12px}
+
+/* ============ score ring (conic dial) ============ */
+/* set the percentage with:  style="--p:87"  and put the number inside */
+.ring{--p:80;width:50px;height:50px;flex:none;border-radius:50%;display:grid;place-items:center;
+  background:conic-gradient(var(--brand) calc(var(--p)*1%), var(--track) 0)}
+.ring>span{width:38px;height:38px;border-radius:50%;background:var(--card);
+  display:grid;place-items:center;font-weight:800;font-size:14px;letter-spacing:-.02em}
+.ring.lg{width:64px;height:64px;background:conic-gradient(#a5b4fc calc(var(--p)*1%), rgba(255,255,255,.16) 0)}
+.ring.lg>span{width:50px;height:50px;background:rgba(24,22,38,.55);flex-direction:column;display:flex;
+  align-items:center;justify-content:center;line-height:1;gap:1px;font-size:17px;color:#fff}
+.ring.lg small{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.6)}
+
+/* ============ top pick hero ============ */
+.hero{border-radius:18px;padding:24px;color:#fff;position:relative;overflow:hidden;cursor:pointer;
+  background:radial-gradient(520px 260px at 92% 0%, rgba(99,102,241,.5), transparent 62%),
+             linear-gradient(135deg,#232030,#3d3384);
+  box-shadow:0 1px 2px rgba(16,24,40,.04),0 18px 40px -18px rgba(16,24,40,.35)}
+.hero .halo{position:absolute;width:200px;height:200px;border-radius:50%;border:1px solid rgba(255,255,255,.08);top:-70px;right:-30px}
+.hero .row{display:flex;gap:16px;align-items:center;position:relative}
+.hero .title{font-weight:700;font-size:21px;letter-spacing:-.02em}
+.hero .sub{color:#c4c8ea;font-size:14px;margin-top:2px}
+.hero .sub b{color:#5eead4}
+.hero .why{margin-top:14px;color:#d6d9f2;font-size:13.5px;line-height:1.6;position:relative}
+.hero .cta{display:flex;gap:10px;margin-top:18px;position:relative}
+.hero .cta .primary{background:#fff;color:#232030;border:0;padding:11px 18px;border-radius:11px;font-weight:600;font-size:14px;cursor:pointer}
+.hero .cta .ghost{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.22);
+  padding:11px 16px;border-radius:11px;font-weight:600;font-size:14px;cursor:pointer}
+.hero .star-lg{width:40px;height:40px;flex:none;border-radius:11px;border:1px solid rgba(255,255,255,.22);
+  background:rgba(255,255,255,.08);font-size:17px;color:rgba(255,255,255,.55);cursor:pointer;display:grid;place-items:center}
+.hero .star-lg.on{color:var(--star);border-color:rgba(245,158,11,.5);background:rgba(245,158,11,.16)}
+.hero .close{font-size:20px;line-height:1;color:rgba(255,255,255,.45);cursor:pointer;background:none;border:0;padding:0;
+  flex:none;width:26px;height:26px;display:grid;place-items:center;border-radius:8px}
+.hero .close:hover{color:#fca5a5}
+.logo-tile{width:50px;height:50px;border-radius:14px;background:#fff;display:grid;place-items:center;flex:none}
+.logo-tile img{width:30px;height:30px;border-radius:7px;object-fit:contain;display:block}
+
+/* ============ match rows ============ */
+.match{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;
+  margin-bottom:12px;display:flex;align-items:center;gap:15px;box-shadow:var(--shadow);cursor:pointer;
+  transition:transform .15s ease, box-shadow .15s ease}
+.match:hover{transform:translateY(-2px)}
+.match .logo{width:44px;height:44px;flex:none;border-radius:12px;background:var(--line);
+  display:grid;place-items:center}
+.match .logo img{width:26px;height:26px;border-radius:6px;object-fit:contain;display:block}
+.match .body{flex:1;min-width:0}
+.match .title{font-weight:700;font-size:15.5px;letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
+.pill-new{background:#0E2A1C;color:var(--good);border-radius:999px;padding:2px 9px;
+  font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.match .company{color:var(--muted);font-size:13px;margin-top:2px}
+.match .salary{color:var(--good);font-weight:700;font-size:13px;white-space:nowrap}
+.applied-chip{background:var(--line);color:var(--sub);border:1px solid var(--line);border-radius:999px;padding:2px 9px;font-size:11.5px;font-weight:700;white-space:nowrap}
+.star{width:40px;height:40px;flex:none;border-radius:11px;border:1px solid var(--line);background:var(--card);
+  font-size:17px;color:#4b5563;cursor:pointer;display:grid;place-items:center}
+.star.on{color:var(--star);border-color:#7c5a12;background:#241d0d}
+.dismiss{font-size:18px;line-height:1;color:#3c4a63;cursor:pointer;background:none;border:0;padding:0;
+  flex:none;width:22px;height:22px;display:grid;place-items:center;border-radius:7px}
+.dismiss:hover{color:#dc2626;text-shadow:0 0 10px rgba(220,38,38,.85)}
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="brand">
+    <span class="dot"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 3h12l4 6-10 13L2 9Z" fill="#FFFFFF"/><path d="M2 9h20M11 3 8 9l4 13 4-13-3-6" stroke="#6366f1" stroke-width="1.4" fill="none" stroke-linejoin="round" stroke-linecap="round"/></svg></span>
+    Job<b>Bot</b>
+  </div>
+  <nav class="links">
+    <a href="#">Home</a>
+    <a class="active" href="#">Matches</a>
+    <a href="#">Resumes</a>
+    <a href="#">Preferences</a>
+    <a href="#">Options</a>
+  </nav>
+  <div class="who">
+    <span class="avatar">J</span>
+    <div class="meta"><div style="font-weight:600">Jordan</div><div class="email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="7a03150f3a1f021b170a161f54191517">[email&#160;protected]</a></div></div>
+  </div>
+</header>
+
+<main>
+  <div class="head">
+    <div>
+      <div class="eyebrow">5 new today</div>
+      <h1>Morning, Jordan 👋</h1>
+    </div>
+    <button class="btn">↻ Refresh my matches</button>
+  </div>
+
+  <div class="tabs">
+    <a class="on" href="#">For you</a>
+    <a href="#">★ Saved · 1</a>
+    <a href="#">Applied · 1</a>
+    <a href="#">Refused · 0</a>
+  </div>
+
+  <div class="section-label">Today's top pick</div>
+  <div class="hero">
+    <div class="halo"></div>
+    <div class="row">
+      <div class="ring lg" style="--p:87"><span>87<small>match</small></span></div>
+      <div style="flex:1;min-width:0">
+        <div class="title">Senior Software Engineer</div>
+        <div class="sub">Stripe · Remote · New York, NY · <b>$160–200k</b></div>
+      </div>
+      <div class="logo-tile"><img src="https://logo.clearbit.com/stripe.com" alt=""></div>
+      <button class="star-lg on" title="Saved">★</button>
+      <button class="close" title="Not interested — remove from queue">×</button>
+    </div>
+    <div class="why">Strongest match this week — your Python, FastAPI and distributed-systems experience line up with the core requirements.</div>
+    <div class="cta">
+      <button class="primary">✨ Tailor &amp; apply</button>
+      <button class="ghost">★ Saved</button>
+    </div>
+  </div>
+
+  <div class="section-label">Next in your queue · 5</div>
+
+  <!-- one row per match: set --p + score, title, company line, salary, pills, star state -->
+  <article class="match">
+    <div class="ring" style="--p:76"><span>76</span></div>
+    <div class="logo"><img src="https://logo.clearbit.com/plaid.com" alt=""></div>
+    <div class="body">
+      <div class="title"><span class="pill-new">New</span> API Engineer</div>
+      <div class="company">Plaid · Hybrid · Chicago, IL</div>
+    </div>
+    <span class="salary">$140–175k</span>
+    <span class="applied-chip">✓ Applied</span>
+    <button class="star">☆</button>
+    <button class="dismiss" title="Not interested">×</button>
+  </article>
+
+  <article class="match">
+    <div class="ring" style="--p:84"><span>84</span></div>
+    <div class="logo"><img src="https://logo.clearbit.com/datadoghq.com" alt=""></div>
+    <div class="body">
+      <div class="title">Senior Backend Engineer</div>
+      <div class="company">Datadog · Remote · Austin, TX</div>
+    </div>
+    <span class="salary">$150–185k</span>
+    <button class="star">☆</button>
+    <button class="dismiss" title="Not interested">×</button>
+  </article>
+
+  <article class="match">
+    <div class="ring" style="--p:81"><span>81</span></div>
+    <div class="logo"><img src="https://logo.clearbit.com/airbnb.com" alt=""></div>
+    <div class="body">
+      <div class="title"><span class="pill-new">New</span> Backend Developer (Python)</div>
+      <div class="company">Airbnb · On-site · Boston, MA</div>
+    </div>
+    <span class="salary">$130–160k</span>
+    <button class="star">☆</button>
+    <button class="dismiss" title="Not interested">×</button>
+  </article>
+
+  <article class="match">
+    <div class="ring" style="--p:79"><span>79</span></div>
+    <div class="logo"><img src="https://logo.clearbit.com/figma.com" alt=""></div>
+    <div class="body">
+      <div class="title">Staff Engineer</div>
+      <div class="company">Figma · Remote · San Francisco, CA</div>
+    </div>
+    <span class="salary">$190–240k</span>
+    <button class="star">☆</button>
+    <button class="dismiss" title="Not interested">×</button>
+  </article>
+
+  <article class="match">
+    <div class="ring" style="--p:73"><span>73</span></div>
+    <div class="logo"><img src="https://logo.clearbit.com/notion.so" alt=""></div>
+    <div class="body">
+      <div class="title"><span class="pill-new">New</span> Platform Engineer</div>
+      <div class="company">Notion · On-site · Hartford, CT</div>
+    </div>
+    <span class="salary">$110–140k</span>
+    <button class="star">☆</button>
+    <button class="dismiss" title="Not interested">×</button>
+  </article>
+</main>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+/* minimal interactivity: star toggle + dismiss (replace with your real handlers) */
+document.querySelectorAll('.match .star').forEach(b => b.addEventListener('click', e => {
+  e.stopPropagation(); b.classList.toggle('on'); b.textContent = b.classList.contains('on') ? '★' : '☆';
+}));
+document.querySelectorAll('.dismiss').forEach(b => b.addEventListener('click', e => {
+  e.stopPropagation(); b.closest('.match').remove();
+}));
+</script>
+</body>
+</html>

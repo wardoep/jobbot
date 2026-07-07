@@ -1,0 +1,42 @@
+# JobBot dependencies.
+#
+# We add packages PHASE BY PHASE so each install stays small and easy to debug.
+# These are the Phase 1 packages (database + config + password hashing).
+# Later phases will append their own lines here (FastAPI, httpx, anthropic, etc.).
+
+# --- Phase 1: database, migrations, config, security ---
+SQLAlchemy>=2.0,<2.1        # talks to the database in plain Python (no raw SQL)
+alembic>=1.13              # "migrations": versioned scripts that build/update the DB
+pydantic-settings>=2.0     # loads settings from .env safely
+python-dotenv>=1.0         # reads the .env file
+bcrypt>=4.0                # one-way password hashing (we never store plain passwords)
+
+# --- Phase 2: job-source ingestion ---
+httpx>=0.27               # makes HTTP requests to job-board APIs (with timeouts)
+
+# --- Phase 4: the web app ---
+fastapi>=0.115            # the web framework (routes, forms, validation)
+uvicorn>=0.30            # the web server that runs FastAPI
+jinja2>=3.1              # HTML templates (the pages you see)
+python-multipart>=0.0.9  # lets forms upload files (resumes)
+itsdangerous>=2.1        # signs the login-session cookie so it can't be forged
+pypdf>=4.0               # extracts text from uploaded PDF resumes
+python-docx>=1.1         # extracts text from uploaded Word (.docx) resumes
+
+# --- Phase 5: alerts + the always-on scheduler ---
+# (Email uses Python's built-in smtplib and Slack uses httpx, so the alert
+#  channels themselves need no extra packages.)
+APScheduler>=3.10,<4     # runs the poll->match->alert loop every N minutes
+
+# --- Phase 6: resume tailoring + application Q&A ---
+# The LLM (OpenAI by default) is called over its REST API with httpx (already
+# above), so there is NO new package to install for this phase.
+
+# --- Phase 7: Tier B scrapers (boards with no API), via the DataImpulse proxy ---
+# (Requests still use httpx with its proxy= option; the proxy itself is read from
+#  .env, never hardcoded.)
+lxml>=5.0                # fast, forgiving HTML parsing for the scrapers
+
+# --- BUILD_SPEC ATS ingestion: HTML job descriptions -> Markdown ---
+markdownify>=0.11
+fpdf2

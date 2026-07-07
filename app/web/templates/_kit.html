@@ -1,0 +1,102 @@
+{# Application Kit fragment — rendered inline on the job page when a kit
+   exists, and returned by the HTMX POST /jobs/{id}/kit when generated.
+   Context: kit (content dict), job, kit_row (DB row), OR kit_error. #}
+
+{% if kit_error %}
+  <div class="flash error" style="position:static;transform:none;left:auto;box-shadow:none;max-width:none;min-width:0;margin:0;display:block">{{ kit_error }}</div>
+
+{% elif kit %}
+  {# ---- artifact tiles --------------------------------------------------- #}
+  <div class="kit-tiles">
+    <div class="kit-tile">
+      <span class="ic">📄</span>
+      <b>Tailored resume</b>
+      <p>Your resume, reordered for this role — the most relevant experience
+        first, summary rewritten to mirror the posting. Nothing invented.</p>
+      <div class="row">
+        <a class="kit-btn solid" href="/jobs/{{ job.id }}/kit/resume.pdf">↓ PDF</a>
+        <a class="kit-btn" href="/jobs/{{ job.id }}/kit/resume.docx">↓ Word</a>
+      </div>
+    </div>
+    <div class="kit-tile">
+      <span class="ic">✉️</span>
+      <b>Cover letter</b>
+      <p>A complete, ready-to-send letter for
+        {{ job.company or 'this company' }} — grounded in your real resume.</p>
+      <div class="row">
+        <a class="kit-btn solid" href="/jobs/{{ job.id }}/kit/cover-letter.pdf">↓ PDF</a>
+        <a class="kit-btn" href="/jobs/{{ job.id }}/kit/cover-letter.docx">↓ Word</a>
+        <button type="button" class="kit-btn kit-copy" data-src="kit-src-letter">Copy text</button>
+      </div>
+    </div>
+    <div class="kit-tile">
+      <span class="ic">💬</span>
+      <b>Application answers</b>
+      <p>The {{ kit.answers | length }} standard portal questions, drafted in
+        your voice — copy them below. <b>[Brackets]</b> mark the bits only you
+        can confirm.</p>
+      <div class="row">
+        <a class="kit-btn" href="#kit-answers">View below ↓</a>
+      </div>
+    </div>
+  </div>
+
+  {# ---- copy blocks ------------------------------------------------------ #}
+  <div class="kit-eyebrow" id="kit-answers">Copy &amp; paste into the portal</div>
+
+  {% if kit.summary %}
+  <div class="copyblock">
+    <div class="hd"><b>Professional summary — tailored to this job</b>
+      <button type="button" class="copychip kit-copy" data-src="kit-src-summary">Copy</button></div>
+    <p>{{ kit.summary }}</p>
+    <textarea class="kit-src" id="kit-src-summary" hidden readonly>{{ kit.summary }}</textarea>
+  </div>
+  {% endif %}
+
+  {% for a in kit.answers %}
+    {% if a.a %}
+    <div class="copyblock">
+      <div class="hd"><b>&ldquo;{{ a.q }}&rdquo;</b>
+        <button type="button" class="copychip kit-copy" data-src="kit-src-a{{ loop.index }}">Copy</button></div>
+      <p>{{ a.a }}</p>
+      <textarea class="kit-src" id="kit-src-a{{ loop.index }}" hidden readonly>{{ a.a }}</textarea>
+    </div>
+    {% endif %}
+  {% endfor %}
+
+  <textarea class="kit-src" id="kit-src-letter" hidden readonly>{{ kit.cover_letter }}</textarea>
+
+  {# ---- footer ------------------------------------------------------------ #}
+  <div class="kit-foot">
+    {% if job.url %}<a class="btn" href="{{ job.url }}" target="_blank" rel="noopener">Open original posting ↗</a>{% endif %}
+    <form method="post" action="/matches/{{ job.id }}/status" style="margin:0">
+      <input type="hidden" name="next" value="job">
+      <button type="submit" name="status" value="applied" class="btn ghost">✓ Mark applied</button>
+    </form>
+    <button type="button" class="kit-btn"
+            hx-post="/jobs/{{ job.id }}/kit" hx-target="#kit-target" hx-swap="innerHTML"
+            hx-indicator="#kit-respin" hx-disabled-elt="this"
+            hx-confirm="Regenerate the whole kit? This replaces the current resume, letter and answers.">⟳ Regenerate</button>
+    <span id="kit-respin" class="htmx-indicator muted">Rebuilding… (~20s)</span>
+    <span class="kit-note">Nothing is sent anywhere until you use it. Mark applied when you submit — it moves to your Applied tab.</span>
+  </div>
+
+  <script>
+    (function () {
+      if (window.__kitCopyWired) return;
+      window.__kitCopyWired = true;
+      document.addEventListener('click', function (e) {
+        var btn = e.target.closest('.kit-copy');
+        if (!btn) return;
+        var src = document.getElementById(btn.dataset.src);
+        if (!src) return;
+        navigator.clipboard.writeText(src.value).then(function () {
+          var old = btn.textContent;
+          btn.textContent = '✓ Copied';
+          btn.classList.add('done');
+          setTimeout(function () { btn.textContent = old; btn.classList.remove('done'); }, 1800);
+        });
+      });
+    })();
+  </script>
+{% endif %}

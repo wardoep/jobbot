@@ -1,0 +1,200 @@
+<sc-if value="{{ screenDashboard }}" hint-placeholder-val="{{ true }}">
+        <div style="max-width:920px;margin:0 auto;padding:34px 40px 64px;animation:jbrise .35s ease">
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:22px">
+            <div>
+              <div class="sg" style="font-weight:600;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#5e76a8;margin-bottom:6px">5 new today</div>
+              <h1 class="sg" style="font-weight:700;font-size:34px;letter-spacing:-.03em;margin:0">{{ greeting }}</h1>
+            </div>
+            <button class="sg" onclick="{{ refresh }}" style="display:inline-flex;align-items:center;gap:8px;background:#0f1730;color:#fff;border:0;padding:12px 18px;border-radius:12px;font-weight:600;font-size:14px;cursor:pointer">↻ Refresh my matches</button>
+          </div>
+          <div style="display:flex;gap:22px;border-bottom:1px solid #e2e8f3;margin-bottom:20px">
+            <div onclick="{{ setForYou }}" style="{{ tabForYou }}">For you</div>
+            <div onclick="{{ setSaved }}" style="{{ tabSaved }}">★ Saved · {{ savedCount }}</div>
+            <div onclick="{{ setApplied }}" style="{{ tabApplied }}">Applied · {{ appliedCount }}</div>
+            <div onclick="{{ setRefused }}" style="{{ tabRefused }}">Refused · {{ refusedCount }}</div>
+          </div>
+
+          <sc-if value="{{ isForYou }}" hint-placeholder-val="{{ true }}">
+          <div style="animation:jbrise .35s ease">
+
+
+          <sc-if value="{{ dashHome }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#fff;border:1px solid #e6ecf6;border-radius:16px;padding:40px 32px;text-align:center;box-shadow:0 12px 30px -22px rgba(15,23,48,.35)">
+              <div style="width:72px;height:72px;border-radius:22px;margin:0 auto 16px;background:linear-gradient(135deg,#0f1730,#23407a);display:grid;place-items:center;box-shadow:0 18px 36px -16px rgba(15,23,48,.55);position:relative">
+                <div style="display:flex;gap:9px"><span style="width:9px;height:9px;border-radius:50%;background:#7fd7ff;display:block"></span><span style="width:9px;height:9px;border-radius:50%;background:#7fd7ff;display:block"></span></div>
+                <div style="position:absolute;bottom:18px;width:18px;height:7px;border-bottom:2px solid #7fd7ff;border-radius:0 0 8px 8px"></div>
+              </div>
+              <div style="background:#f4f7fc;border:1px solid #e6ecf6;border-radius:16px;border-bottom-left-radius:4px;padding:16px 18px;text-align:left;max-width:400px;margin:0 auto 22px">
+                <div class="sg" style="font-weight:700;font-size:15px;margin-bottom:3px">Hi {{ userFirst }}, I'm JobBot 👋</div>
+                <p style="color:#475569;font-size:13.5px;margin:0;line-height:1.5">Drop your resume and I'll start hunting for roles that actually fit — then tell you why each one made the cut.</p>
+              </div>
+              <label style="{{ homeZoneStyle }}" ondragover="{{ dragHomeOn }}" ondragleave="{{ dragHomeOff }}" ondrop="{{ onDropHome }}">
+                <input type="file" accept=".pdf,.docx" style="display:none" onchange="{{ onPickHome }}">
+                <div class="sg" style="font-weight:700;font-size:15px;color:#0f1730">⬆ Drag &amp; drop your resume</div>
+                <div style="color:#64748b;font-size:13px;margin-top:4px">or <span style="color:#2563eb;font-weight:600">browse files</span> · PDF or DOCX</div>
+              </label>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ dashScan }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#fff;border:1px solid #e6ecf6;border-radius:16px;padding:30px 30px 34px;box-shadow:0 12px 30px -22px rgba(15,23,48,.35)">
+              <div style="display:flex;align-items:center;gap:14px;margin-bottom:6px">
+                <div style="width:34px;height:34px;border-radius:50%;border:3px solid #e0e8f5;border-top-color:#2563eb;animation:jbspin .8s linear infinite;flex:none"></div>
+                <h1 class="sg" style="font-weight:700;font-size:22px;letter-spacing:-.02em;margin:0">Scanning {{ scanTotal }} sources…</h1>
+              </div>
+              <p style="color:#64748b;margin:0 0 18px;font-size:14px">Checking jobs posted in the last 24 hours — {{ scanFound }} postings found so far.</p>
+              <div style="height:6px;border-radius:3px;background:#e3e9f4;margin-bottom:22px;overflow:hidden"><div style="{{ scanBarStyle }}"></div></div>
+              <div style="display:flex;flex-direction:column;gap:13px">
+                <sc-for list="{{ scanRows }}" as="s" hint-placeholder-count="3">
+                  <div style="{{ s.rowStyle }}">
+                    <sc-if value="{{ s.isDone }}" hint-placeholder-val="{{ false }}"><span style="{{ s.iconDoneStyle }}">✓</span></sc-if>
+                    <sc-if value="{{ s.isScanning }}" hint-placeholder-val="{{ true }}"><span style="width:20px;height:20px;border-radius:50%;border:2px solid #c7d6f5;border-top-color:#2563eb;animation:jbspin .8s linear infinite;flex:none"></span></sc-if>
+                    <span style="font-weight:600;font-size:14px;flex:1">{{ s.name }}</span>
+                    <sc-if value="{{ s.isDone }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:#15803d;font-weight:600">{{ s.foundLabel }}</span></sc-if>
+                    <sc-if value="{{ s.isScanning }}" hint-placeholder-val="{{ true }}"><span style="font-size:12px;color:#9aa8c2">scanning…</span></sc-if>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ dashForYou }}" hint-placeholder-val="{{ true }}">
+            <div class="sg" style="font-weight:600;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#5e76a8;margin-bottom:12px">Today's top pick</div>
+            <div class="jhover" onclick="{{ featured.onOpen }}" style="border-radius:18px;padding:24px;color:#fff;position:relative;overflow:hidden;background:radial-gradient(480px 240px at 92% 0%, rgba(34,211,238,.32), transparent 60%), linear-gradient(135deg,#0f1730,#1c3a73);box-shadow:0 18px 40px -24px rgba(15,23,48,.5);cursor:pointer">
+              <div style="position:absolute;width:200px;height:200px;border-radius:50%;border:1px solid rgba(255,255,255,.07);top:-70px;right:-30px"></div>
+              <div style="display:flex;gap:16px;align-items:center;position:relative">
+                <div style="width:50px;height:50px;border-radius:14px;background:#fff;display:grid;place-items:center;flex:none"><img src="{{ featured.logoSrc }}" onerror="{{ onLogoError }}" style="width:30px;height:30px;border-radius:7px;object-fit:contain;display:block"><div style="{{ featured.logoMarkHidden }}"><div style="{{ featured.logoNotchStyle }}"></div></div></div>
+                <div style="flex:1;min-width:0"><div class="sg" style="font-weight:700;font-size:21px;letter-spacing:-.02em">{{ featured.title }}</div><div style="color:#b9c6e6;font-size:14px;margin-top:2px">{{ featured.sub }} · <span style="color:#7af0c2;font-weight:700">{{ featured.salary }}</span></div></div>
+                <button onclick="{{ featured.onSave }}" style="{{ featured.starStyleLg }}" style-hover="color:#ffd66e;text-shadow:0 0 12px rgba(255,214,110,.95)">{{ featured.starChar }}</button>
+                <button onclick="{{ featured.onDismiss }}" title="Not interested — remove from queue" style="font-size:20px;line-height:1;color:rgba(255,255,255,.45);cursor:pointer;background:none;border:0;padding:0;flex:none;width:26px;height:26px;display:grid;place-items:center;border-radius:8px" style-hover="color:#ff6b6b;text-shadow:0 0 12px rgba(255,107,107,.95)">×</button>
+              </div>
+              <div style="margin-top:14px;color:#cdd8f0;font-size:13.5px;line-height:1.6;position:relative">{{ featured.why }}</div>
+              <div style="display:flex;gap:10px;margin-top:18px;position:relative">
+                <button class="sg jb-light-btn" onclick="{{ featured.onOpen }}" style="background:#fff;color:#0f1730;border:0;padding:11px 18px;border-radius:11px;font-weight:600;font-size:14px;cursor:pointer">✨ Tailor &amp; apply</button>
+                <button class="sg" onclick="{{ featured.onSave }}" style="background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.2);padding:11px 16px;border-radius:11px;font-weight:600;font-size:14px;cursor:pointer">{{ featured.saveLabel }}</button>
+              </div>
+            </div>
+            <div class="sg" style="font-weight:600;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#5e76a8;margin:24px 0 12px">Next in your queue · {{ queueCount }}</div>
+            <sc-for list="{{ queueJobs }}" as="job" hint-placeholder-count="4">
+              <div class="jhover" onclick="{{ job.onOpen }}" style="background:#fff;border:1px solid #e6ecf6;border-radius:14px;padding:16px 18px;margin-bottom:12px;display:flex;align-items:center;gap:15px;box-shadow:0 12px 30px -24px rgba(15,23,48,.35);cursor:pointer">
+                <div class="sg" style="font-weight:700;font-size:15px;color:#c3ccdb;width:20px;flex:none">{{ job.rank }}</div>
+                <div style="{{ job.logoTileStyle }}"><img src="{{ job.logoSrc }}" onerror="{{ onLogoError }}" style="width:26px;height:26px;border-radius:6px;object-fit:contain;display:block"><div style="{{ job.logoMarkHidden }}"><div style="{{ job.logoNotchStyle }}"></div></div></div>
+                <div style="flex:1;min-width:0">
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <sc-if value="{{ job.isNew }}" hint-placeholder-val="{{ false }}"><span class="jb-new" style="background:#0f1730;color:#fff;border-radius:5px;padding:1px 7px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em">New</span></sc-if>
+                    <span class="sg" style="font-weight:700;font-size:15.5px;letter-spacing:-.01em">{{ job.title }}</span>
+                  </div>
+                  <div style="color:#64748b;font-size:13px;margin-top:2px">{{ job.companyLine }}</div>
+                </div>
+                <span style="color:#15803d;font-weight:700;font-size:13px;white-space:nowrap">{{ job.salary }}</span>
+                <sc-if value="{{ job.isApplied }}" hint-placeholder-val="{{ false }}"><span style="background:#dcfce7;color:#15803d;border-radius:6px;padding:2px 9px;font-size:11.5px;font-weight:700;white-space:nowrap">✓ Applied</span></sc-if>
+                <span style="{{ job.fitStyle }}">{{ job.fitLabel }}</span>
+                <button onclick="{{ job.onStar }}" style="{{ job.starStyle }}" style-hover="color:#f59e0b;text-shadow:0 0 10px rgba(245,158,11,.9)">{{ job.starChar }}</button>
+                <button onclick="{{ job.onDismiss }}" title="Not interested — remove from queue" style="font-size:18px;line-height:1;color:#c3ccdb;cursor:pointer;background:none;border:0;padding:0;flex:none;width:22px;height:22px;display:grid;place-items:center;border-radius:7px" style-hover="color:#dc2626;text-shadow:0 0 10px rgba(220,38,38,.85)">×</button>
+              </div>
+            </sc-for>
+          </sc-if>
+
+          </div>
+          </sc-if>
+
+          <sc-if value="{{ isSaved }}" hint-placeholder-val="{{ false }}">
+          <div style="animation:jbrise .35s ease">
+            <sc-if value="{{ hasSaved }}" hint-placeholder-val="{{ true }}">
+              <sc-for list="{{ savedList }}" as="job" hint-placeholder-count="2">
+                <div class="jhover" onclick="{{ job.onOpen }}" style="background:#fff;border:1px solid #e6ecf6;border-radius:14px;padding:16px 18px;margin-bottom:12px;display:flex;align-items:center;gap:15px;box-shadow:0 12px 30px -24px rgba(15,23,48,.35);cursor:pointer">
+                  <div style="{{ job.logoTileStyle }}"><img src="{{ job.logoSrc }}" onerror="{{ onLogoError }}" style="width:26px;height:26px;border-radius:6px;object-fit:contain;display:block"><div style="{{ job.logoMarkHidden }}"><div style="{{ job.logoNotchStyle }}"></div></div></div>
+                  <div style="flex:1;min-width:0">
+                    <div class="sg" style="font-weight:700;font-size:15.5px;letter-spacing:-.01em">{{ job.title }}</div>
+                    <div style="color:#64748b;font-size:13px;margin-top:2px">{{ job.companyLine }}</div>
+                  </div>
+                  <span style="color:#15803d;font-weight:700;font-size:13px;white-space:nowrap">{{ job.salary }}</span>
+                <span style="{{ job.fitStyle }}">{{ job.fitLabel }}</span>
+                  <button onclick="{{ job.onStar }}" style="{{ job.starStyle }}">{{ job.starChar }}</button>
+                </div>
+              </sc-for>
+            </sc-if>
+            <sc-if value="{{ noSaved }}" hint-placeholder-val="{{ false }}">
+              <div style="background:#fff;border:1px solid #e6ecf6;border-radius:16px;padding:48px 30px;text-align:center;box-shadow:0 12px 30px -22px rgba(15,23,48,.35)">
+                <div style="font-size:30px;margin-bottom:8px;color:#f59e0b">☆</div>
+                <div class="sg" style="font-weight:700;font-size:18px;margin-bottom:5px">No saved jobs yet</div>
+                <p style="color:#64748b;font-size:14px;margin:0">Tap the star on any match to save it here for tailoring later.</p>
+              </div>
+            </sc-if>
+          </div>
+          </sc-if>
+
+          <sc-if value="{{ isApplied }}" hint-placeholder-val="{{ false }}">
+          <div style="animation:jbrise .35s ease">
+            <sc-if value="{{ pipeHasAny }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+                <sc-for list="{{ pipeChips }}" as="p" hint-placeholder-count="6">
+                  <div onclick="{{ p.onClick }}" style="{{ p.style }}">{{ p.label }}<span style="{{ p.countStyle }}">{{ p.count }}</span></div>
+                </sc-for>
+              </div>
+            </sc-if>
+            <sc-if value="{{ hasApplied }}" hint-placeholder-val="{{ true }}">
+              <sc-for list="{{ appliedList }}" as="job" hint-placeholder-count="1">
+                <div style="background:#fff;border:1px solid #e6ecf6;border-radius:14px;padding:16px 18px;margin-bottom:12px;box-shadow:0 12px 30px -24px rgba(15,23,48,.35)">
+                  <div onclick="{{ job.onOpen }}" class="jhover" style="display:flex;align-items:center;gap:15px;cursor:pointer">
+                    <div style="{{ job.logoTileStyle }}"><img src="{{ job.logoSrc }}" onerror="{{ onLogoError }}" style="width:26px;height:26px;border-radius:6px;object-fit:contain;display:block"><div style="{{ job.logoMarkHidden }}"><div style="{{ job.logoNotchStyle }}"></div></div></div>
+                    <div style="flex:1;min-width:0">
+                      <div class="sg" style="font-weight:700;font-size:15.5px;letter-spacing:-.01em">{{ job.title }}</div>
+                      <div style="color:#64748b;font-size:13px;margin-top:2px">{{ job.companyLine }}</div>
+                    </div>
+                    <span style="color:#9aa8c2;font-size:12px;white-space:nowrap">{{ job.appliedMeta }}</span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:13px;padding-top:13px;border-top:1px solid #f1f5f9">
+                    <div style="display:inline-flex;align-items:center;gap:8px">
+                      <span style="{{ job.stageDotStyle }}"></span>
+                      <select value="{{ job.stage }}" onchange="{{ job.onStageChange }}" style="border:1px solid #e2e8f3;border-radius:9px;padding:7px 28px 7px 10px;font:inherit;font-size:13px;font-weight:600;color:#1f2a44;background:#fff;-webkit-appearance:none;appearance:none;cursor:pointer">
+                        <sc-for list="{{ job.stageOptions }}" as="o" hint-placeholder-count="5"><option value="{{ o }}">{{ o }}</option></sc-for>
+                      </select>
+                    </div>
+                    <span style="{{ job.reminderStyle }}">⏰ {{ job.reminder }}</span>
+                    <div style="flex:1"></div>
+                    <sc-if value="{{ job.atOffer }}" hint-placeholder-val="{{ false }}"><span onclick="{{ job.onOpen }}" class="sg" style="color:#15803d;font-weight:700;font-size:12.5px;cursor:pointer;white-space:nowrap">💰 Offer insights →</span></sc-if>
+                  </div>
+                </div>
+              </sc-for>
+            </sc-if>
+            <sc-if value="{{ noApplied }}" hint-placeholder-val="{{ false }}">
+              <div style="background:#fff;border:1px solid #e6ecf6;border-radius:16px;padding:48px 30px;text-align:center;box-shadow:0 12px 30px -22px rgba(15,23,48,.35)">
+                <div style="font-size:28px;margin-bottom:8px">📮</div>
+                <div class="sg" style="font-weight:700;font-size:18px;margin-bottom:5px">Nothing here yet</div>
+                <p style="color:#64748b;font-size:14px;margin:0">Open a match, tailor it, and mark it applied to track it through your pipeline.</p>
+              </div>
+            </sc-if>
+          </div>
+          </sc-if>
+
+          <sc-if value="{{ isRefused }}" hint-placeholder-val="{{ false }}">
+          <div style="animation:jbrise .35s ease">
+            <sc-if value="{{ hasRefused }}" hint-placeholder-val="{{ true }}">
+              <div style="font-size:12.5px;color:#8294b5;margin-bottom:12px">The last 10 jobs you removed. Restore any to send it back to your queue.</div>
+              <sc-for list="{{ refusedList }}" as="job" hint-placeholder-count="2">
+                <div class="jhover" onclick="{{ job.onOpen }}" style="background:#fff;border:1px solid #e6ecf6;border-radius:14px;padding:16px 18px;margin-bottom:12px;display:flex;align-items:center;gap:15px;box-shadow:0 12px 30px -24px rgba(15,23,48,.35);cursor:pointer">
+                  <div style="{{ job.logoTileStyle }}"><img src="{{ job.logoSrc }}" onerror="{{ onLogoError }}" style="width:26px;height:26px;border-radius:6px;object-fit:contain;display:block"><div style="{{ job.logoMarkHidden }}"><div style="{{ job.logoNotchStyle }}"></div></div></div>
+                  <div style="flex:1;min-width:0">
+                    <div class="sg" style="font-weight:700;font-size:15.5px;letter-spacing:-.01em;color:#475569">{{ job.title }}</div>
+                    <div style="color:#94a3b8;font-size:13px;margin-top:2px">{{ job.companyLine }}</div>
+                  </div>
+                  <span style="color:#94a3b8;font-weight:700;font-size:13px;white-space:nowrap">{{ job.salary }}</span>
+                  <button class="sg" onclick="{{ job.onRestore }}" style="flex:none;background:#fff;border:1px solid #cfe0ff;color:#2563eb;padding:8px 14px;border-radius:10px;font-weight:600;font-size:13px;cursor:pointer;white-space:nowrap" style-hover="background:#eef4ff">↩ Restore</button>
+                </div>
+              </sc-for>
+            </sc-if>
+            <sc-if value="{{ noRefused }}" hint-placeholder-val="{{ false }}">
+              <div style="background:#fff;border:1px solid #e6ecf6;border-radius:16px;padding:48px 30px;text-align:center;box-shadow:0 12px 30px -22px rgba(15,23,48,.35)">
+                <div style="font-size:28px;margin-bottom:8px">🗂️</div>
+                <div class="sg" style="font-weight:700;font-size:18px;margin-bottom:5px">No refused jobs</div>
+                <p style="color:#64748b;font-size:14px;margin:0">Jobs you dismiss with × land here, so you can undo it if you change your mind.</p>
+              </div>
+            </sc-if>
+          </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <!-- INSIGHTS -->
+      

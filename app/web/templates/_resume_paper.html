@@ -1,0 +1,80 @@
+{% if error %}
+  <div class="flash error" style="position:static;transform:none;margin:0">{{ error }}</div>
+{% else %}
+{#- Per-template look (accent + font + layout), mirroring the design-spec tkMap. -#}
+{% set tkmap = {
+  "modern":  {"accent": "#2563eb", "font": "-apple-system,system-ui,sans-serif",   "align": "left",   "bar": true,  "twocol": false, "rail": "#eef4ff"},
+  "classic": {"accent": "#0f1730", "font": "Georgia,'Times New Roman',serif",       "align": "center", "bar": false, "twocol": false, "rail": "#f3f4f6"},
+  "twocol":  {"accent": "#0d9488", "font": "-apple-system,system-ui,sans-serif",   "align": "left",   "bar": false, "twocol": true,  "rail": "#ecfdf8"},
+  "minimal": {"accent": "#475569", "font": "-apple-system,system-ui,sans-serif",   "align": "left",   "bar": false, "twocol": false, "rail": "#f8fafc"}
+} %}
+{% set tk = tkmap.get(tpl, tkmap["modern"]) %}
+{% set paper = paper or {} %}
+{% set sections = paper.sections or [] %}
+
+{%- macro section_block(sec, tk) -%}
+  <div style="font-weight:700;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:{{ tk.accent }};border-bottom:1px solid #e6ecf6;padding-bottom:5px;margin:18px 0 9px">{{ sec.heading }}</div>
+  {% set is_skills = sec.heading and ('skill' in sec.heading|lower) %}
+  {% if is_skills %}
+    <div>
+      {% for e in sec.entries %}{% for b in e.bullets %}<span style="display:inline-block;background:#f1f5fb;color:{{ tk.accent }};border:1px solid #e2e8f3;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600;margin:0 5px 5px 0">{{ b }}</span>{% endfor %}{% endfor %}
+    </div>
+  {% else %}
+    {% for e in sec.entries %}
+      <div style="margin-bottom:11px">
+        {% if e.role or e.org or e.dates %}
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline">
+          <span style="font-weight:700;font-size:13px;color:#0f1730">{{ e.role }}{% if e.role and e.org %} · {% endif %}{{ e.org }}</span>
+          {% if e.dates %}<span style="font-size:11.5px;color:#94a3b8;white-space:nowrap;flex:none">{{ e.dates }}</span>{% endif %}
+        </div>
+        {% endif %}
+        {% for b in e.bullets %}
+        <div style="font-size:12px;color:#475569;line-height:1.5;padding-left:13px;position:relative;margin-bottom:2px"><span style="position:absolute;left:0">•</span>{{ b }}</div>
+        {% endfor %}
+      </div>
+    {% endfor %}
+  {% endif %}
+{%- endmacro -%}
+
+{%- macro summary_block(text, tk) -%}
+  <div style="font-weight:700;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:{{ tk.accent }};border-bottom:1px solid #e6ecf6;padding-bottom:5px;margin:18px 0 9px">Summary</div>
+  <div style="font-size:12.5px;line-height:1.55;color:#334155">{{ text }}</div>
+{%- endmacro -%}
+
+<div style="background:#fff;color:#111;border-radius:10px;padding:30px;box-shadow:0 18px 44px -26px rgba(15,23,48,.45);border:1px solid #eef2f8;font-family:{{ tk.font }}">
+  {% if tk.bar %}<div style="height:6px;width:80px;border-radius:4px;background:{{ tk.accent }};margin-bottom:16px"></div>{% endif %}
+
+  {% if paper.name %}<div style="font-weight:700;font-size:24px;letter-spacing:-.02em;color:#0f1730;text-align:{{ tk.align }}">{{ paper.name }}</div>{% endif %}
+  {% if paper.headline %}<div style="font-size:13px;font-weight:600;color:{{ tk.accent }};text-align:{{ tk.align }};margin-top:2px">{{ paper.headline }}</div>{% endif %}
+
+  {% if tk.twocol %}
+    <div style="display:flex;gap:18px;margin-top:14px;align-items:flex-start">
+      <div style="background:{{ tk.rail }};border-radius:8px;padding:16px;width:36%;flex:none">
+        {% if paper.contact %}
+          <div style="font-weight:700;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:{{ tk.accent }};border-bottom:1px solid #e6ecf6;padding-bottom:5px;margin:0 0 9px">Contact</div>
+          <div style="font-size:11px;color:#475569;line-height:1.6;word-break:break-word">{{ paper.contact }}</div>
+        {% endif %}
+        {% for sec in sections if sec.heading and 'skill' in sec.heading|lower %}
+          {{ section_block(sec, tk) }}
+        {% endfor %}
+      </div>
+      <div style="flex:1;min-width:0">
+        {% if paper.summary %}{{ summary_block(paper.summary, tk) }}{% endif %}
+        {% for sec in sections if not (sec.heading and 'skill' in sec.heading|lower) %}
+          {{ section_block(sec, tk) }}
+        {% endfor %}
+      </div>
+    </div>
+  {% else %}
+    {% if paper.contact %}<div style="font-size:11px;color:#64748b;text-align:{{ tk.align }};margin-top:5px">{{ paper.contact }}</div>{% endif %}
+    {% if paper.summary %}{{ summary_block(paper.summary, tk) }}{% endif %}
+    {% for sec in sections %}{{ section_block(sec, tk) }}{% endfor %}
+  {% endif %}
+
+  {% if not paper.name and not paper.summary and not sections %}
+    <div style="font-size:13px;color:#64748b">We couldn't read structured content from your resume. Try a clearer text-based file.</div>
+  {% endif %}
+</div>
+
+{% if paper.model %}<p class="muted" style="font-size:12px;margin-top:10px">Reformatted by {{ paper.model }} · same content, new layout — your uploaded files are unchanged.</p>{% endif %}
+{% endif %}

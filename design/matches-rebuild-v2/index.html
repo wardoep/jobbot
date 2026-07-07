@@ -1,0 +1,63 @@
+<!doctype html>
+<!--
+  JobBot — "Matches" tab (dark theme, v2) — rebuilt from matches-page-segment.zip
+  ================================================================================
+  Vanilla HTML + CSS + JS, no framework, no dependencies. Open this file directly.
+  The original static segment is preserved in reference/original-matches-page-segment.html.
+
+  Structure matches the original's guidance:
+    styles.css  -> the original <style> block, plus a clearly-marked section for
+                   the working Saved / Applied / Refused panels
+    script.js   -> renders each queue row (<article class="match">) from the jobs
+                   list and wires stars, dismiss/restore, tabs and counts
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your matches · JobBot</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%236366f1'/%3E%3Cpath d='M6 5h12l3.4 5L12 21 2.6 10Z' fill='%23fff' transform='scale(.82) translate(2.6 .5)'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="brand">
+    <span class="dot"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 3h12l4 6-10 13L2 9Z" fill="#FFFFFF"/><path d="M2 9h20M11 3 8 9l4 13 4-13-3-6" stroke="#6366f1" stroke-width="1.4" fill="none" stroke-linejoin="round" stroke-linecap="round"/></svg></span>
+    Job<b>Bot</b>
+  </div>
+  <nav class="links">
+    <a href="#">Home</a>
+    <a class="active" href="#">Matches</a>
+    <a href="#">Resumes</a>
+    <a href="#">Preferences</a>
+    <a href="#">Options</a>
+  </nav>
+  <div class="who">
+    <span class="avatar">J</span>
+    <div class="meta"><div style="font-weight:600">Jordan</div><div class="email">you@example.com</div></div>
+  </div>
+</header>
+
+<main>
+  <div class="head">
+    <div>
+      <div class="eyebrow">5 new today</div>
+      <h1 id="greeting">Morning, Jordan 👋</h1>
+    </div>
+    <button class="btn" id="refresh">↻ Refresh my matches</button>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <a class="on" href="#" data-tab="foryou">For you</a>
+    <a href="#" data-tab="saved">★ Saved · <span data-count="saved">1</span></a>
+    <a href="#" data-tab="applied">Applied · <span data-count="applied">1</span></a>
+    <a href="#" data-tab="refused">Refused · <span data-count="refused">0</span></a>
+  </div>
+
+  <div id="panel"><!-- rendered by script.js --></div>
+</main>
+
+<script src="script.js"></script>
+</body>
+</html>

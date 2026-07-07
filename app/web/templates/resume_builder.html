@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Resume builder · JobBot{% endblock %}
+{% block body %}
+<style>
+  .tpl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .tpl-card {
+    position: relative; display: block; border: 1px solid var(--border);
+    border-radius: 14px; padding: 10px; background: var(--surface); cursor: pointer;
+    box-shadow: 0 12px 30px -26px rgba(15,23,48,.3);
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .tpl-card input { position: absolute; opacity: 0; pointer-events: none; }
+  .tpl-card .tpl-thumb {
+    height: 84px; background: #fff; border: 1px solid #eef2f8; border-radius: 8px;
+    padding: 9px; overflow: hidden;
+  }
+  .tpl-card .tpl-name { font-weight: 700; font-size: 13px; margin-top: 8px; color: var(--text); }
+  .tpl-card .tpl-blurb { font-size: 11px; color: var(--faint); margin-top: 2px; }
+  .tpl-card:has(input:checked) {
+    border: 2px solid var(--blue); padding: 9px;
+    box-shadow: 0 14px 30px -18px rgba(37,99,235,.5);
+  }
+  .tpl-card:has(input:checked) .tpl-name { color: var(--blue); }
+  .builder-cols { display: flex; gap: 24px; flex-wrap: wrap; margin-top: 18px; }
+  .builder-left { width: 340px; flex: none; }
+  .builder-right { flex: 1; min-width: 330px; }
+  @media (max-width: 760px) {
+    .builder-left { width: 100%; }
+  }
+</style>
+
+<p class="eyebrow">Documents</p>
+<h1 class="sg">Resume builder</h1>
+<p class="sub">Pick a template and JobBot reformats your resume to match — same content,
+  polished new look. This is a preview only; it never changes your uploaded files.</p>
+<p><a href="/resumes" class="muted" style="font-weight:600;font-size:13px">← Back to resumes</a></p>
+
+{% if not llm_ready %}
+  <div class="flash info" style="position:static;transform:none;margin:18px 0">
+    The assistant isn't configured yet, so the resume builder is unavailable.
+    Add an LLM provider key to enable it.
+  </div>
+{% elif not has_resume %}
+  <div class="card" style="margin-top:18px">
+    <h2 style="margin-top:0">Upload a resume first</h2>
+    <p class="muted">The builder reformats <em>your</em> resume, so there's nothing to
+      build from yet.</p>
+    <a class="btn" href="/resumes">Go to Resumes</a>
+  </div>
+{% else %}
+  <div class="builder-cols">
+    <div class="builder-left">
+      <form>
+        <div class="tpl-grid">
+          {% for t in templates %}
+          <label class="tpl-card">
+            <input type="radio" name="template" value="{{ t.key }}"
+                   {% if t.key == selected %}checked{% endif %}>
+            <div class="tpl-thumb">
+              {% if t.key == 'modern' %}
+                <div style="height:8px;background:#2563eb;border-radius:3px;width:62%"></div>
+                <div style="height:5px;background:#dbe7ff;border-radius:3px;margin-top:8px"></div>
+                <div style="height:5px;background:#eef2f8;border-radius:3px;margin-top:5px"></div>
+                <div style="height:5px;background:#eef2f8;border-radius:3px;margin-top:5px;width:80%"></div>
+              {% elif t.key == 'classic' %}
+                <div style="height:7px;background:#0f1730;border-radius:3px;width:50%;margin:0 auto"></div>
+                <div style="height:4px;background:#e2e8f3;border-radius:3px;width:34%;margin:6px auto 0"></div>
+                <div style="height:5px;background:#eef2f8;border-radius:3px;margin-top:9px"></div>
+                <div style="height:5px;background:#eef2f8;border-radius:3px;margin-top:5px"></div>
+              {% elif t.key == 'twocol' %}
+                <div style="display:flex;gap:6px;height:100%">
+                  <div style="width:34%;background:#ecfdf8;border-radius:4px"></div>
+                  <div style="flex:1">
+                    <div style="height:6px;background:#cdeee7;border-radius:3px;width:70%"></div>
+                    <div style="height:5px;background:#eef2f8;border-radius:3px;margin-top:7px"></div>
+                    <div style="height:5px;background:#eef2f8;border-radius:3px;margin-top:5px"></div>
+                  </div>
+                </div>
+              {% else %}
+                <div style="height:6px;background:#0f1730;border-radius:3px;width:44%"></div>
+                <div style="height:4px;background:#eef2f8;border-radius:3px;margin-top:13px;width:90%"></div>
+                <div style="height:4px;background:#eef2f8;border-radius:3px;margin-top:9px;width:70%"></div>
+              {% endif %}
+            </div>
+            <div class="tpl-name">{{ t.label }}</div>
+            <div class="tpl-blurb">{{ t.blurb }}</div>
+          </label>
+          {% endfor %}
+        </div>
+
+        <button type="button" class="btn block sg" style="margin-top:16px"
+                hx-post="/resumes/builder/run"
+                hx-target="#builder-preview"
+                hx-swap="innerHTML"
+                hx-include="closest form"
+                hx-indicator="#builder-spin"
+                hx-disabled-elt="this">✨ Reformat my resume</button>
+        <span id="builder-spin" class="htmx-indicator muted">Reformatting…</span>
+      </form>
+    </div>
+
+    <div class="builder-right">
+      <div id="builder-preview">
+        <div style="border:2px dashed var(--border-input);border-radius:12px;
+                    padding:64px 24px;text-align:center;background:var(--inset)">
+          <div style="font-size:34px;margin-bottom:10px">📄</div>
+          <div class="sg" style="font-weight:700;font-size:15px">Your reformatted resume appears here</div>
+          <div class="muted" style="font-size:13px;margin-top:4px">Pick a template and hit Reformat.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

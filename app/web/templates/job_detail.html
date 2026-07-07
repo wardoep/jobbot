@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% from "_company_pic.html" import company_pic %}
+{% block title %}{{ job.title }} · JobBot{% endblock %}
+{% block body %}
+
+{# Reusable bits ---------------------------------------------------------- #}
+{% set sechead = "font-family:var(--font-display);font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:14px" %}
+{% set tinylabel = "font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--faint);margin-bottom:3px" %}
+{% set fact = "font-family:var(--font-display);font-size:13.5px;font-weight:600;color:var(--text)" %}
+{% set note = "position:static;transform:none;left:auto;box-shadow:none;max-width:none;min-width:0;margin:10px 0 0;display:block" %}
+{% set tints = ['#38BDF8','#ED93B1','#5DCAA5','#EF9F27','#AFA9EC'] %}
+{% set tint = tints[(job.id or 0) % 5] %}
+
+{# 1. Back link ----------------------------------------------------------- #}
+<p style="margin:0 0 14px"><a href="/matches" class="muted" style="font-size:13px;font-weight:600">← Back to matches</a></p>
+
+{# 2. Header card --------------------------------------------------------- #}
+<div class="card" style="display:flex;gap:18px;align-items:center;flex-wrap:wrap">
+  {{ company_pic(job.id % 6, (job.company[0]|upper) if job.company else (job.title[0]|upper if job.title else '?'), job.company, job.url) }}
+  <div style="flex:1;min-width:0">
+    <h1 class="sg" style="font-size:23px;font-weight:700;letter-spacing:-.02em;line-height:1.2;margin:0 0 4px">
+      {% if job.url %}<a href="{{ job.url }}" target="_blank" rel="noopener" style="color:var(--text)">{{ job.title }}</a>
+      {% else %}{{ job.title }}{% endif %}
+    </h1>
+    <div class="muted" style="font-size:14px">
+      {{ job.company or 'Unknown company' }}{% if job.location %} · {{ job.location }}{% endif %}
+    </div>
+  </div>
+  {% if match %}
+  <div style="text-align:center;flex:none">
+    <div class="score" style="min-width:auto;color:var(--blue)">{{ '%.0f'|format(match.score) }}%<small>match</small></div>
+    <div class="bar" style="margin:8px auto 0"><i style="width: {{ match.score }}%"></i></div>
+  </div>
+  {% endif %}
+  <div style="flex:none">{% with job_id=job.id, starred=starred %}{% include "_star_button.html" %}{% endwith %}</div>
+</div>
+
+{# 3. Found via (only when we have a source or a link) -------------------- #}
+{% if job.source or job.url %}
+<div class="card" style="display:flex;align-items:center;gap:13px;flex-wrap:wrap">
+  <div class="sg" style="width:38px;height:38px;flex:none;border-radius:10px;background:var(--ghost-bg);color:var(--ghost-fg);display:grid;place-items:center;font-size:17px">↗</div>
+  <div style="flex:1;min-width:0">
+    <div class="muted" style="font-size:12px;font-weight:600">{% if job.source %}Found via {{ job.source }}{% else %}Original posting{% endif %}</div>
+    <div class="sg" style="font-weight:700;font-size:14px">View the original posting</div>
+  </div>
+  {% if job.url %}
+  <a class="btn" href="{{ job.url }}" target="_blank" rel="noopener">View original posting ↗</a>
+  {% endif %}
+</div>
+{% endif %}
+
+{# 4. Company snapshot (only when we have at least one fact) -------------- #}
+{% if job.company or job.location or job.work_type or job.posted_date or job.source %}
+<div class="card">
+  <div class="sg" style="{{ sechead }}">Company snapshot</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+    {% if job.company %}<div><div style="{{ tinylabel }}">Company</div><div style="{{ fact }}">{{ job.company }}</div></div>{% endif %}
+    {% if job.location %}<div><div style="{{ tinylabel }}">Location</div><div style="{{ fact }}">{{ job.location }}</div></div>{% endif %}
+    {% if job.work_type %}<div><div style="{{ tinylabel }}">Work type</div><div style="{{ fact }}">{{ job.work_type }}</div></div>{% endif %}
+    {% if job.posted_date %}<div><div style="{{ tinylabel }}">Posted</div><div style="{{ fact }}">{{ job.posted_date.strftime('%b %d, %Y') if job.posted_date.strftime is defined else job.posted_date }}</div></div>{% endif %}
+    {% if job.source %}<div><div style="{{ tinylabel }}">Source</div><div style="{{ fact }}">{{ job.source }}</div></div>{% endif %}
+  </div>
+</div>
+{% endif %}
+
+{# 5. How you match ------------------------------------------------------- #}
+<div class="card">
+  <div class="sg" style="{{ sechead }}">How you match</div>
+  {% if breakdown.have or breakdown.missing %}
+    {% if breakdown.have %}
+      <div class="sg" style="font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--green);margin-bottom:8px">You have</div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap">
+        {% for s in breakdown.have %}
+          <span class="sg" style="background:var(--green-bg);color:var(--green);border:1px solid var(--green-bd);border-radius:8px;padding:5px 11px;font-size:12.5px;font-weight:600">✓ {{ s }}</span>
+        {% endfor %}
+      </div>
+    {% endif %}
+    {% if breakdown.missing %}
+      <div class="sg" style="font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--amber);margin:{% if breakdown.have %}16px{% else %}0{% endif %} 0 8px">Worth adding if you have it</div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap">
+        {% for s in breakdown.missing %}
+          <span class="sg" style="background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-bd);border-radius:8px;padding:5px 11px;font-size:12.5px;font-weight:600">+ {{ s }}</span>
+        {% endfor %}
+      </div>
+      <div class="muted" style="font-size:12px;margin-top:11px">These appear in the posting but not your resume. If they're part of your background, tailor your resume below to surface them.</div>
+    {% endif %}
+  {% else %}
+    <div class="muted" style="font-size:13px;line-height:1.55">Add keywords in your <a href="/preferences">preferences</a> to see how you stack up against this role.</div>
+  {% endif %}
+</div>
+
+{# 6. Offer / compensation (only when we actually have a salary) ----------- #}
+{% if job.salary %}
+<div class="card" style="background:linear-gradient(180deg,var(--green-bg),var(--surface))">
+  <div class="sg" style="{{ sechead }};color:var(--green)">💰 Offer &amp; compensation</div>
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+    <div style="{{ tinylabel }};margin:0">Listed pay</div>
+    <div class="sg" style="font-weight:700;font-size:18px;color:var(--green)">${{ "{:,}".format(job.salary) }}</div>
+  </div>
+</div>
+{% endif %}
+
+{# 7. Application kit — tailored resume + cover letter + portal answers ---- #}
+<div class="card">
+  <div class="sg" style="{{ sechead }}">✨ Application kit</div>
+  <p class="sub">Everything you need to apply — generated from <b>your resume</b>, tailored
+    to <b>this job</b>. A ready-to-download resume and cover letter, plus drafted answers
+    for the portal. Nothing is sent anywhere until you use it.</p>
+  {% if not llm_ready %}
+    <div class="flash info" style="{{ note }}">The assistant isn't configured yet. Add
+      <code>OPENAI_API_KEY</code> to your <code>.env</code> and restart.</div>
+  {% elif not has_resume %}
+    <div class="flash info" style="{{ note }}">Upload a resume first on the
+      <a href="/resumes">Resumes</a> page, then come back.</div>
+  {% else %}
+    <div id="kit-target">
+      {% if kit %}
+        {% include "_kit.html" %}
+      {% else %}
+        <button hx-post="/jobs/{{ job.id }}/kit" hx-target="#kit-target"
+                hx-swap="innerHTML" hx-indicator="#kit-spin" hx-disabled-elt="this">
+          ✨ Generate application kit
+        </button>
+        <span id="kit-spin" class="htmx-indicator muted">Building your kit — tailored
+          resume, cover letter, portal answers… (~20 seconds)</span>
+      {% endif %}
+    </div>
+  {% endif %}
+</div>
+
+{# 8. Application question helper — forms preserved verbatim --------------- #}
+<div class="card">
+  <div class="sg" style="{{ sechead }}">📝 Application question helper</div>
+  <p class="sub">Paste a question from the application and get a first-person draft grounded
+    in your resume. <b>Edit before you use it</b> — it's a draft, never auto-submitted.</p>
+  {% if not llm_ready %}
+    <div class="flash info" style="{{ note }}">Add <code>OPENAI_API_KEY</code> to your <code>.env</code> to use this.</div>
+  {% elif not has_resume %}
+    <div class="flash info" style="{{ note }}">Upload a resume first on the <a href="/resumes">Resumes</a> page.</div>
+  {% else %}
+    <form method="post" action="/jobs/{{ job.id }}/answers">
+      <label for="question">Application question</label>
+      <textarea id="question" name="question" rows="2" required
+                placeholder="e.g. Why do you want to work here?"></textarea>
+      <button type="submit" style="margin-top:10px">Draft an answer</button>
+    </form>
+  {% endif %}
+
+  {% if answers %}
+  <h3 style="margin-top:22px">Your saved answers ({{ answers|length }})</h3>
+  {% for a in answers %}
+    <div class="qa">
+      <div class="q"><b>Q:</b> {{ a.question }}</div>
+      <form method="post" action="/answers/{{ a.id }}">
+        <textarea name="final_answer" rows="6">{{ a.final_answer }}</textarea>
+        <button type="submit" class="btn small" style="margin-top:8px">Save edits</button>
+      </form>
+      <form method="post" action="/answers/{{ a.id }}/delete"
+            onsubmit="return confirm('Delete this answer?')" style="margin-top:6px">
+        <button type="submit" class="btn danger small">Delete</button>
+      </form>
+    </div>
+  {% endfor %}
+  {% endif %}
+</div>
+
+{# 9. Job description — collapsible -------------------------------------- #}
+{% if job.description %}
+<div class="card">
+  <details>
+    <summary class="sg" style="{{ sechead }};margin:0;cursor:pointer">Job description</summary>
+    <div class="jobdesc">{{ job.description }}</div>
+  </details>
+</div>
+{% endif %}
+
+{# Real company / source-site picture — shared resolver (static/logos.js). #}
+<script src="/static/logos.js"></script>
+{% endblock %}

@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Quick review · JobBot{% endblock %}
+{% block body %}
+
+<div style="max-width:560px;margin:0 auto">
+
+  <p class="eyebrow">Quick review</p>
+  <h1 class="sg">Review your matches</h1>
+  <p class="sub">One at a time. Decide fast — save the keepers, skip the rest.</p>
+
+  {# ---- progress -------------------------------------------------------- #}
+  <div style="margin-bottom:22px">
+    <div style="display:flex;justify-content:space-between;font-size:12.5px;font-weight:600;margin-bottom:6px">
+      <span style="color:var(--text-2)">{{ decided }} of {{ total }} decided</span>
+      <span style="color:var(--muted)">{{ remaining }} left to review</span>
+    </div>
+    <div class="bar" style="width:100%;height:8px"><i style="width:{{ progress_pct }}%"></i></div>
+  </div>
+
+  {% if current %}
+    {# ---- focused card -------------------------------------------------- #}
+    <div class="card" style="margin:0;padding:26px">
+      <div style="display:flex;gap:18px;align-items:flex-start">
+        <div>
+          <div class="score">{{ '%.0f'|format(current.match.score) }}%<small>match</small></div>
+          <div class="bar"><i style="width:{{ current.match.score }}%"></i></div>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div class="sg" style="font-weight:700;font-size:21px;letter-spacing:-.02em;line-height:1.25">
+            {% if current.is_new %}<span class="badge-new" title="Added in the last 24 hours">New</span> {% endif %}
+            {% if current.job.url %}<a href="{{ current.job.url }}" target="_blank" rel="noopener" style="color:var(--text)">{{ current.job.title }}</a>
+            {% else %}{{ current.job.title }}{% endif %}
+          </div>
+          <div class="muted" style="font-size:14px;margin-top:4px">{{ current.job.company or 'Unknown company' }}</div>
+          <div style="margin-top:11px">
+            {% if current.job.work_type %}<span class="tag">{{ current.job.work_type }}</span>{% endif %}
+            {% if current.job.location %}<span class="tag">{{ current.job.location }}</span>{% endif %}
+            {% if current.job.posted_date %}<span class="tag">posted {{ current.job.posted_date }}</span>{% endif %}
+            {% if current.job.source %}<span class="tag">{{ current.job.source }}</span>{% endif %}
+          </div>
+          <div style="margin-top:14px"><a href="/jobs/{{ current.job.id }}">✨ Open &amp; tailor →</a></div>
+        </div>
+      </div>
+
+      {# action forms — each updates the Star and advances to the next card #}
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:22px;padding-top:18px;border-top:1px solid var(--border)">
+        <form method="post" action="/matches/{{ current.job.id }}/status" style="flex:1;min-width:120px">
+          <input type="hidden" name="next" value="review">
+          <button type="submit" name="status" value="interested" class="btn block">☆ Save</button>
+        </form>
+        <form method="post" action="/matches/{{ current.job.id }}/status" style="flex:1;min-width:120px">
+          <input type="hidden" name="next" value="review">
+          <button type="submit" name="status" value="applied" class="btn secondary block">Mark applied</button>
+        </form>
+        <form method="post" action="/matches/{{ current.job.id }}/status" style="flex:1;min-width:120px">
+          <input type="hidden" name="next" value="review">
+          <button type="submit" name="status" value="rejected" class="btn danger block">Not interested</button>
+        </form>
+      </div>
+    </div>
+    <p class="center muted" style="font-size:12.5px;margin-top:14px">Showing your highest-scoring undecided match. Each choice brings up the next.</p>
+
+  {% else %}
+    {# ---- caught-up celebration ----------------------------------------- #}
+    <div class="card center" style="margin:0;padding:44px 26px">
+      <div style="font-size:40px;margin-bottom:10px">🎉</div>
+      <div class="sg" style="font-weight:700;font-size:20px;color:var(--text);letter-spacing:-.02em">You're all caught up</div>
+      <p class="muted" style="max-width:380px;margin:8px auto 0">Nothing left in your For-you queue. Nicely done — check back after the next scan for fresh roles.</p>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:20px">
+        <a class="btn" href="/dashboard">Back to home</a>
+        <a class="btn secondary" href="/matches">View all matches</a>
+      </div>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

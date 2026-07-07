@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Sign up' if mode == 'signup' else 'Log in' }} · JobBot{% endblock %}
+{% block body %}
+
+<style>
+  /* scoped to the login two-pane. The only rule that reaches outside .lg-* is the
+     .jb-plain override below, and it is guarded by :has(.lg-wrap) so it fires on
+     this page alone — the shared .jb-plain definition in style.css is untouched. */
+  /* the login page is full-bleed: cancel base's centered, padded .jb-plain
+     wrapper — but ONLY for this page (scoped via :has(.lg-wrap)) so the shared
+     splash/register pages keep their centered layout. */
+  main.jb-plain:has(.lg-wrap){ padding:0; display:block; }
+
+  /* full-bleed two-pane split that fills the viewport edge-to-edge, mirroring
+     JobBot.html's min-height:100vh flex row (no centered card / rounded wrapper). */
+  .lg-wrap{
+    width:100%; min-height:100vh;
+    display:flex; align-items:stretch;
+  }
+  .lg-hero{
+    flex:1.15; min-width:0; position:relative; overflow:hidden;
+    color:#fff; padding:60px 56px; display:flex; flex-direction:column;
+    background:
+      radial-gradient(900px 520px at 12% 8%, rgba(59,130,246,.42), transparent 58%),
+      radial-gradient(760px 620px at 96% 100%, rgba(34,211,238,.28), transparent 60%),
+      linear-gradient(150deg,#0b1226 0%,#122247 58%,#16315f 100%);
+  }
+  .lg-orb{ position:absolute; border-radius:50%; pointer-events:none; }
+  .lg-pane{
+    flex:.85; min-width:0; display:grid; place-items:center;
+    background:var(--page); padding:24px;
+  }
+  .lg-card{ width:100%; max-width:372px; margin:0; padding:34px 32px; border-radius:20px; }
+  .lg-badge{
+    width:34px; height:34px; flex:none; border-radius:11px;
+    background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12);
+    display:grid; place-items:center;
+    font-weight:700; font-size:14px; color:#7fd0ff;
+  }
+  .lg-step{ display:flex; gap:15px; align-items:flex-start; }
+  .lg-step h4{ font-weight:700; font-size:15px; margin:0 0 2px; }
+  .lg-step p{ color:#9fb0d4; font-size:13.5px; line-height:1.5; margin:0; }
+  .lg-pill{
+    display:inline-flex; align-items:center; gap:7px;
+    font-size:11px; font-weight:600; letter-spacing:.16em; text-transform:uppercase;
+    color:#7fd0ff; background:rgba(127,208,255,.12);
+    border:1px solid rgba(127,208,255,.25);
+    padding:5px 11px; border-radius:999px; margin-bottom:20px;
+  }
+  .lg-2fa{
+    display:inline-flex; align-items:center; gap:7px;
+    background:var(--ghost-bg); color:var(--ghost-fg);
+    border-radius:999px; padding:4px 12px;
+    font-size:11.5px; font-weight:700; letter-spacing:.04em; margin-bottom:14px;
+  }
+  .lg-code{
+    text-align:center; font-family:var(--font-display);
+    font-size:26px; font-weight:700; letter-spacing:.5em; padding:14px 13px;
+  }
+  .lg-back{
+    display:inline-block; font-weight:600; font-size:13px;
+    color:var(--muted); text-decoration:none; margin-bottom:16px;
+  }
+  .lg-back:hover{ color:var(--text); text-decoration:none; }
+  .lg-emph{ font-family:var(--font-display); font-weight:600; color:var(--text); }
+  /* the Log in / Sign up switcher under each form */
+  .lg-switch{ margin:18px 0 0; font-size:13px; text-align:center; color:var(--muted); }
+  .lg-switch a{ font-weight:600; }
+
+  @media (max-width:820px){
+    .lg-hero{ display:none; }            /* hero hides on narrow; pane fills full-bleed */
+    .lg-pane{ padding:24px 18px; }
+  }
+</style>
+
+{# action targets differ between the log-in and sign-up flows #}
+{% set rc = '/signup/request-code' if mode == 'signup' else '/login/request-code' %}
+{% set vc = '/signup/verify-code'  if mode == 'signup' else '/login/verify-code' %}
+{% set back = '/login?mode=signup'  if mode == 'signup' else '/login?mode=login' %}
+
+<div class="lg-wrap">
+
+  <!-- ── LEFT: navy gradient hero ───────────────────────────────── -->
+  <div class="lg-hero">
+    <div class="lg-orb" style="width:420px;height:420px;border:1px solid rgba(255,255,255,.06);top:-120px;right:-120px"></div>
+    <div class="lg-orb" style="width:260px;height:260px;border:1px solid rgba(255,255,255,.05);bottom:40px;right:80px"></div>
+
+    <!-- wordmark -->
+    <div class="sg" style="display:flex;align-items:center;gap:10px;font-weight:700;font-size:22px;letter-spacing:-.02em;position:relative">
+      <span style="width:32px;height:32px;border-radius:10px;display:grid;place-items:center;background:linear-gradient(135deg,#6366f1,#0d9488);box-shadow:0 8px 20px -6px rgba(99,102,241,.55);flex:none">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M6 3h12l4 6-10 13L2 9Z" fill="#FFFFFF"/>
+          <path d="M2 9h20M11 3 8 9l4 13 4-13-3-6" stroke="#6366f1" stroke-width="1.4" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+        </svg>
+      </span>JobBot
+    </div>
+
+    <!-- bottom block -->
+    <div style="margin-top:auto;position:relative">
+      <div class="lg-pill sg">Early access</div>
+      <h1 class="sg" style="font-weight:700;font-size:42px;line-height:1.06;letter-spacing:-.03em;margin:0 0 14px;max-width:460px">Your job search,<br>quietly on autopilot.</h1>
+      <p style="font-size:15.5px;line-height:1.6;color:#b9c6e6;margin:0 0 34px;max-width:430px">JobBot watches the job market for you — then hands you only the roles worth your time, already matched to your resume.</p>
+
+      <div style="display:flex;flex-direction:column;gap:18px;max-width:450px">
+        <div class="lg-step">
+          <div class="lg-badge sg">1</div>
+          <div><h4 class="sg">Finds fresh jobs</h4><p>Scans 12+ sources for roles posted in the last 24 hours.</p></div>
+        </div>
+        <div class="lg-step">
+          <div class="lg-badge sg">2</div>
+          <div><h4 class="sg">Matches your resume</h4><p>Scores every job against your experience and preferences.</p></div>
+        </div>
+        <div class="lg-step">
+          <div class="lg-badge sg">3</div>
+          <div><h4 class="sg">Alerts you to the best</h4><p>Only surfaces roles that genuinely fit — no noise, no spam.</p></div>
+        </div>
+        <div class="lg-step">
+          <div class="lg-badge sg">4</div>
+          <div><h4 class="sg">Tailors your application</h4><p>Drafts resume tweaks and answers for the jobs you star.</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── RIGHT: auth card (swaps by step + mode) ─────────────────── -->
+  <div class="lg-pane">
+    <div class="lg-card card">
+
+      {% if step == 'code' %}
+      {# ---- STEP: verify the emailed code (login OR signup) ---- #}
+      <a class="lg-back" href="{{ back }}">← Back</a>
+      <h1 class="sg" style="font-size:21px;margin:0 0 5px">Check your email</h1>
+      <p class="sub" style="margin:0 0 20px">We sent a 6-digit code to <span class="lg-emph">{{ email }}</span>.</p>
+
+      <form method="post" action="{{ vc }}">
+        <input type="hidden" name="email" value="{{ email }}">
+        <input class="lg-code" name="code" type="text" inputmode="numeric" pattern="[0-9]*"
+               maxlength="6" autocomplete="one-time-code" placeholder="••••••" autofocus required>
+        <button type="submit" class="btn block" style="margin-top:18px">
+          {{ 'Create my account' if mode == 'signup' else 'Verify & continue' }}
+        </button>
+      </form>
+
+      <form method="post" action="{{ rc }}" style="margin:14px 0 0">
+        <input type="hidden" name="email" value="{{ email }}">
+        <p class="sub center" style="margin:0;font-size:13px">Didn't get it?
+          <button type="submit" class="btn ghost small" style="margin-left:4px">Resend code</button>
+        </p>
+      </form>
+
+      {% elif step == 'sms' %}
+      {# ---- STEP: SMS two-factor (login only) ---- #}
+      <a class="lg-back" href="/login?mode=login">← Back</a>
+      <div class="lg-2fa sg">🔒 Two-factor</div>
+      <h1 class="sg" style="font-size:21px;margin:0 0 5px">Confirm it's you</h1>
+      <p class="sub" style="margin:0 0 20px">Enter the 6-digit code we texted to your phone.</p>
+
+      <form method="post" action="/login/verify-sms">
+        <input class="lg-code" name="code" type="text" inputmode="numeric" pattern="[0-9]*"
+               maxlength="6" autocomplete="one-time-code" placeholder="••••••" autofocus required>
+        <button type="submit" class="btn block" style="margin-top:18px">Verify & continue</button>
+      </form>
+
+      {% elif mode == 'signup' %}
+      {# ---- STEP: enter details to SIGN UP ---- #}
+      <p class="eyebrow">Get started</p>
+      <h1 class="sg" style="font-size:21px;margin:0 0 5px">Create your account</h1>
+      <p class="sub" style="margin:0 0 20px">Tell us your email and we'll send a code to confirm it — no password needed.</p>
+
+      <form method="post" action="/signup/request-code">
+        <label for="name">Your name <span class="muted" style="font-weight:400">(optional)</span></label>
+        <input id="name" name="name" type="text" value="{{ name or '' }}"
+               placeholder="Alex Doe" autocomplete="name">
+        <label for="email" style="margin-top:12px">Email</label>
+        <input id="email" name="email" type="email" value="{{ email or '' }}"
+               placeholder="you@example.com" autocomplete="email" autofocus required>
+        <button type="submit" class="btn block" style="margin-top:18px">Send code</button>
+      </form>
+
+      <p class="lg-switch">Already have an account? <a href="/login?mode=login">Log in</a></p>
+
+      {% else %}
+      {# ---- STEP: enter email to LOG IN (default) ---- #}
+      <p class="eyebrow">Welcome back</p>
+      <h1 class="sg" style="font-size:21px;margin:0 0 5px">Sign in to JobBot</h1>
+      <p class="sub" style="margin:0 0 20px">Enter your email and we'll send you a one-time sign-in code.</p>
+
+      <form method="post" action="/login/request-code">
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" value="{{ email or '' }}"
+               placeholder="you@example.com" autocomplete="email" autofocus required>
+        <button type="submit" class="btn block" style="margin-top:18px">Send code</button>
+      </form>
+
+      <p class="lg-switch">New to JobBot? <a href="/login?mode=signup">Create an account</a></p>
+      {% endif %}
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}

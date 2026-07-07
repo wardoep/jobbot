@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+{% from "_company_pic.html" import company_pic %}
+{% block title %}Matches · JobBot{% endblock %}
+{% block main_class %} hm-page{% endblock %}
+
+{# One HTMX card action: POSTs the status, and on success the card removes
+   itself (set_status returns an empty body for HX requests) — no reload,
+   the grid reflows so the next job slides into view. #}
+{% macro card_act(job_id, tab, status, char, label, cls) %}
+<form class="mg-act" hx-post="/matches/{{ job_id }}/status"
+      hx-target="closest .mg-card" hx-swap="outerHTML swap:150ms">
+  <input type="hidden" name="tab" value="{{ tab }}">
+  <button type="submit" name="status" value="{{ status }}"
+          class="mg-btn {{ cls }}" title="{{ label }}" aria-label="{{ label }}">{{ char }}</button>
+</form>
+{% endmacro %}
+
+{# Conic match-score ring. #}
+{% macro ring(row, extra='') %}
+<div class="mt-ring {{ extra }}" style="--p:{{ '%.0f'|format(row.match.score or 0) }}">
+  <span>{{ '%.0f'|format(row.match.score or 0) }}<span class="sr-only">% match</span></span>
+</div>
+{% endmacro %}
+
+{# "Company · Hybrid · Austin, TX" line — skips whatever the job didn't report. #}
+{# Remote jobs show just "Remote" — the stored city is the company HQ, not
+   where you'd work, so showing it makes a work-from-anywhere role look far. #}
+{% macro company_line(job) -%}
+  {%- if job.work_type == 'Remote' -%}
+    {{ (job.company or 'Unknown company') ~ ' · Remote' }}
+  {%- else -%}
+    {{ [job.company or 'Unknown company', job.work_type, job.location] | select | join(' · ') }}
+  {%- endif -%}
+{%- endmacro %}
+
+{# One square grid card. `acts` picks the action set per tab. #}
+{% macro card(r, tab, acts) %}
+<div class="mg-card {{ 'dim' if tab == 'refused' }}">
+  <a class="mg-link" href="/jobs/{{ r.job.id }}" aria-label="{{ r.job.title }}"></a>
+  <div class="mg-top">
+    {{ company_pic(r.avatar_idx, r.initial, r.job.company, r.job.url, 'lg') }}
+    <div class="mg-top-right">
+      {% if r.is_new and tab == 'foryou' %}<span class="mt-new">New</span>{% endif %}
+      {{ ring(r) }}
+    </div>
+  </div>
+  <div class="mg-title sg">{{ r.job.title }}</div>
+  <div class="mg-co">{{ r.job.company or 'Unknown company' }}</div>
+  <div class="mg-loc">{% if r.job.work_type == 'Remote' %}Remote{% else %}{{ [r.job.work_type, r.job.location] | select | join(' · ') or '&nbsp;'|safe }}{% endif %}</div>
+  <div class="mg-foot">
+    {% if r.salary_label %}<span class="mt-sal">{{ r.salary_label }}</span>{% else %}<span></span>{% endif %}
+    <div class="mg-acts">
+      {% if acts == 'foryou' %}
+        {{ card_act(r.job.id, tab, 'interested', '☆', 'Save', 'star') }}
+        {{ card_act(r.job.id, tab, 'applied', '✓', 'Mark applied', 'check') }}
+        {{ card_act(r.job.id, tab, 'rejected', '×', 'Not interested', 'x') }}
+      {% elif acts == 'saved' %}
+        {{ card_act(r.job.id, tab, 'clear', '★', 'Unsave — back to For you', 'star on') }}
+        {{ card_act(r.job.id, tab, 'applied', '✓', 'Mark applied', 'check') }}
+        {{ card_act(r.job.id, tab, 'rejected', '×', 'Not interested', 'x') }}
+      {% elif acts == 'applied' %}
+        {{ card_act(r.job.id, tab, 'interested', '☆', 'Move back to Saved', 'star') }}
+        {{ card_act(r.job.id, tab, 'clear', '↺', 'Reset — back to For you', 'undo') }}
+        {{ card_act(r.job.id, tab, 'rejected', '×', 'Not interested', 'x') }}
+      {% elif acts == 'refused' %}
+        <form class="mg-act" hx-post="/matches/{{ r.job.id }}/status"
+              hx-target="closest .mg-card" hx-swap="outerHTML swap:150ms">
+          <input type="hidden" name="tab" value="{{ tab }}">
+          <button type="submit" name="status" value="clear" class="mt-restore sg">↩ Restore</button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+  {% if acts == 'applied' %}
+    <div class="mg-meta"><span class="mt-applied-chip">✓ Applied</span>
+      {% if r.decided_ago %}<span class="mt-meta">{{ r.decided_ago }}</span>{% endif %}</div>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{% block body %}
+<div class="mt-head">
+  <div>
+    <p class="eyebrow">{{ new_today }} new today</p>
+    <h1 class="sg">Your matches</h1>
+  </div>
+  <form method="post" action="/matches/refresh">
+    <input type="hidden" name="tab" value="{{ tab }}">
+    <button type="submit">↻ Refresh my matches</button>
+  </form>
+</div>
+
+{% if not has_resume %}
+  <div class="flash info hm-callout">
+    You haven't uploaded a resume yet, so matches can't be scored.
+    <a href="/resumes">Upload one</a>, set your <a href="/preferences">preferences</a>,
+    then hit “↻ Refresh my matches”.
+  </div>
+{% endif %}
+
+{# ---- underline tab bar (no count on "For you", like the design) --------- #}
+<div class="mt-tabs">
+  {% set tabdefs = [
+    ('foryou', 'For you', None),
+    ('saved', '★ Saved', counts.saved),
+    ('applied', 'Applied', counts.applied)
+  ] %}
+  {% for key, label, count in tabdefs %}
+    <a class="mt-tab sg {% if tab == key %}on{% endif %}" href="/matches?tab={{ key }}">
+      {{- label }}{% if count is not none %} · {{ count }}{% endif -%}
+    </a>
+  {% endfor %}
+</div>
+
+{# ---- FOR YOU: featured hero + card grid --------------------------------- #}
+{% if tab == 'foryou' %}
+  {% if top_pick %}
+    <div class="mt-eyebrow sg">Today's top pick</div>
+    <div class="mt-hero">
+      <div class="mt-hero-ring"></div>
+      <div class="mt-hero-main">
+        <div class="mt-ring lg" style="--p:{{ '%.0f'|format(top_pick.match.score or 0) }}">
+          <span>{{ '%.0f'|format(top_pick.match.score or 0) }}<small>match</small></span>
+        </div>
+        <div class="mt-hero-heading">
+          <div class="mt-hero-title sg">{{ top_pick.job.title }}</div>
+          <div class="mt-hero-sub">
+            {{ company_line(top_pick.job) }}
+            {%- if top_pick.salary_label %} · <b class="sal">{{ top_pick.salary_label }}</b>{% endif %}
+          </div>
+        </div>
+        {{ company_pic(top_pick.avatar_idx, top_pick.initial, top_pick.job.company, top_pick.job.url, 'lg') }}
+        <form method="post" action="/matches/{{ top_pick.job.id }}/status" class="mt-act">
+          <input type="hidden" name="tab" value="foryou">
+          <button type="submit" name="status" value="interested" class="mt-hero-star"
+                  title="Save" aria-label="Save">☆</button>
+        </form>
+        <form method="post" action="/matches/{{ top_pick.job.id }}/status" class="mt-act">
+          <input type="hidden" name="tab" value="foryou">
+          <button type="submit" name="status" value="rejected" class="mt-hero-x"
+                  title="Not interested — remove from queue" aria-label="Not interested">×</button>
+        </form>
+      </div>
+      <div class="mt-hero-why">{{ top_pick.match.reason or
+        'Strongest match right now — scored %.0f%% against your resume.'|format(top_pick.match.score) }}</div>
+      <div class="mt-hero-actions">
+        <a class="mt-hero-cta sg" href="/jobs/{{ top_pick.job.id }}">✨ Tailor &amp; apply</a>
+        <form method="post" action="/matches/{{ top_pick.job.id }}/status" class="mt-act">
+          <input type="hidden" name="tab" value="foryou">
+          <button type="submit" name="status" value="interested" class="mt-hero-save sg">★ Save</button>
+        </form>
+      </div>
+    </div>
+  {% endif %}
+
+  {% if rows %}
+    <div class="mt-eyebrow sg">Your queue · {{ rows|length }}</div>
+    <div class="mg-grid">
+      {% for r in rows %}{{ card(r, tab, 'foryou') }}{% endfor %}
+    </div>
+  {% elif not top_pick %}
+    <div class="mt-empty">
+      <div class="ico" style="color:var(--blue)">◳</div>
+      <div class="ttl sg">You're all caught up</div>
+      <p>No new matches to review. Hit “↻ Refresh my matches” to scan again.</p>
+    </div>
+  {% endif %}
+{% endif %}
+
+{# ---- SAVED / APPLIED / REFUSED: same card grid --------------------------- #}
+{% for key in ['saved', 'applied'] %}
+  {% if tab == key %}
+    {% if rows %}
+      {% if key == 'refused' %}
+        <div class="mt-note">Jobs you removed. Restore any to send it back to your queue.</div>
+      {% endif %}
+      <div class="mg-grid">
+        {% for r in rows %}{{ card(r, tab, key) }}{% endfor %}
+      </div>
+    {% else %}
+      {% if key == 'saved' %}
+        <div class="mt-empty">
+          <div class="ico" style="color:var(--orange)">☆</div>
+          <div class="ttl sg">No saved jobs yet</div>
+          <p>Tap the star on any match to save it here for tailoring later.</p>
+        </div>
+      {% elif key == 'applied' %}
+        <div class="mt-empty">
+          <div class="ico">📮</div>
+          <div class="ttl sg">Nothing here yet</div>
+          <p>Open a match, tailor it, and mark it applied to track it through your pipeline.</p>
+        </div>
+      {% else %}
+        <div class="mt-empty">
+          <div class="ico">🗂️</div>
+          <div class="ttl sg">No refused jobs</div>
+          <p>Jobs you dismiss with × land here, so you can undo it if you change your mind.</p>
+        </div>
+      {% endif %}
+    {% endif %}
+  {% endif %}
+{% endfor %}
+
+{# Real company pictures — shared resolver (see static/logos.js). #}
+<script src="/static/logos.js"></script>
+{% endblock %}

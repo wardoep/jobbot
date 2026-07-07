@@ -1,0 +1,21 @@
+<!-- ================= APP ================= -->
+<sc-if value="{{ isApp }}" hint-placeholder-val="{{ false }}">
+  <div class="jb-shell {{ shellDark }}" style="display:flex;min-height:100vh;background:#f4f7fc;color:#0f1730;font-family:-apple-system,system-ui,sans-serif">
+    <aside class="jb-aside" style="width:222px;flex:none;background:#0f1730;color:#fff;padding:22px 16px;display:flex;flex-direction:column;gap:5px;position:sticky;top:0;height:100vh">
+      <div onclick="{{ goHome }}" class="sg" style="font-weight:700;font-size:19px;letter-spacing:-.02em;display:flex;align-items:center;gap:9px;padding:4px 8px 18px;cursor:pointer"><span style="width:28px;height:28px;border-radius:9px;display:grid;place-items:center;background:#2563EB"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 3h12l4 6-10 13L2 9Z" fill="#FFFFFF"></path><path d="M2 9h20M11 3 8 9l4 13 4-13-3-6" stroke="#2563EB" stroke-width="1.4" fill="none" stroke-linejoin="round" stroke-linecap="round"></path></svg></span>JobBot</div>
+      <div onclick="{{ goHome }}" class="jb-nav" style="{{ navHome }}"><span>⌂</span> Home</div>
+      <div onclick="{{ goMatches }}" class="jb-nav" style="{{ navMatches }}"><span>◳</span> Matches</div>
+      <div onclick="{{ goResumes }}" class="jb-nav" style="{{ navResumes }}"><span>▤</span> Resumes</div>
+      <div onclick="{{ goPrefs }}" class="jb-nav" style="{{ navPrefs }}"><span>⚙</span> Preferences</div>
+      <div onclick="{{ goOptions }}" class="jb-nav" style="{{ navOptions }}"><span>☰</span> Options</div>
+      <div class="jb-aside-spacer" style="flex:1"></div>
+      <div onclick="{{ goOptions }}" title="Options" class="jb-aside-user jb-nav" style="display:flex;align-items:center;gap:10px;padding:10px 8px;border-top:1px solid rgba(255,255,255,.08);cursor:pointer">
+        <span style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#fda4af,#f59e0b);display:grid;place-items:center;color:#fff;font-weight:700;font-size:13px;overflow:hidden"><sc-if value="{{ hasAvatar }}" hint-placeholder-val="{{ false }}"><img src="{{ avatarImg }}" style="width:100%;height:100%;object-fit:cover;display:block"></sc-if><sc-if value="{{ noAvatar }}" hint-placeholder-val="{{ true }}">{{ avatarText }}</sc-if></span>
+        <div style="font-size:12px;line-height:1.3"><div style="font-weight:600">{{ userFirst }}</div><div style="color:#7e8db0">{{ userEmail }}</div></div>
+      </div>
+    </aside>
+
+    <main style="flex:1;min-width:0">
+
+      <!-- HOME / OVERVIEW -->
+      

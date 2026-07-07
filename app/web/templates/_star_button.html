@@ -1,0 +1,6 @@
+<button class="starbtn {% if starred %}on{% endif %}"
+        hx-post="/matches/{{ job_id }}/star"
+        hx-swap="outerHTML"
+        title="{{ 'Click to unstar' if starred else 'Star this job' }}">
+  {% if starred %}★ Starred{% else %}☆ Star{% endif %}
+</button>
