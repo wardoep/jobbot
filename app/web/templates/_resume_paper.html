@@ -12,16 +12,23 @@
 {% set paper = paper or {} %}
 {% set sections = paper.sections or [] %}
 
+{#- The p* classes (phead/pent/psec/pflow) are styled ONLY on the resume-builder
+    page, where the paper flows into two columns to fit on screen whole; on the
+    kit/job pages they're inert and this renders single-column as before. -#}
 {%- macro section_block(sec, tk) -%}
-  <div style="font-weight:700;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:{{ tk.accent }};border-bottom:1px solid #e6ecf6;padding-bottom:5px;margin:18px 0 9px">{{ sec.heading }}</div>
+  <div class="phead" style="font-weight:700;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:{{ tk.accent }};border-bottom:1px solid #e6ecf6;padding-bottom:5px;margin:18px 0 9px">{{ sec.heading }}</div>
   {% set is_skills = sec.heading and ('skill' in sec.heading|lower) %}
   {% if is_skills %}
-    <div>
-      {% for e in sec.entries %}{% for b in e.bullets %}<span style="display:inline-block;background:#f1f5fb;color:{{ tk.accent }};border:1px solid #e2e8f3;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600;margin:0 5px 5px 0">{{ b }}</span>{% endfor %}{% endfor %}
+    {#- skills read as a plain bulleted list (ATS/recruiter-standard), flowing
+        into 2-3 columns where the column is wide enough, 1 in a sidebar -#}
+    <div style="column-width:150px;column-gap:22px">
+      {% for e in sec.entries %}{% for b in e.bullets %}
+      <div style="font-size:12px;color:#475569;line-height:1.55;padding-left:13px;position:relative;margin-bottom:2px;break-inside:avoid"><span style="position:absolute;left:0">•</span>{{ b }}</div>
+      {% endfor %}{% endfor %}
     </div>
   {% else %}
     {% for e in sec.entries %}
-      <div style="margin-bottom:11px">
+      <div class="pent" style="margin-bottom:11px">
         {% if e.role or e.org or e.dates %}
         <div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline">
           <span style="font-weight:700;font-size:13px;color:#0f1730">{{ e.role }}{% if e.role and e.org %} · {% endif %}{{ e.org }}</span>
@@ -37,7 +44,7 @@
 {%- endmacro -%}
 
 {%- macro summary_block(text, tk) -%}
-  <div style="font-weight:700;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:{{ tk.accent }};border-bottom:1px solid #e6ecf6;padding-bottom:5px;margin:18px 0 9px">Summary</div>
+  <div class="phead" style="font-weight:700;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:{{ tk.accent }};border-bottom:1px solid #e6ecf6;padding-bottom:5px;margin:18px 0 9px">Summary</div>
   <div style="font-size:12.5px;line-height:1.55;color:#334155">{{ text }}</div>
 {%- endmacro -%}
 
@@ -67,8 +74,10 @@
     </div>
   {% else %}
     {% if paper.contact %}<div style="font-size:11px;color:#64748b;text-align:{{ tk.align }};margin-top:5px">{{ paper.contact }}</div>{% endif %}
-    {% if paper.summary %}{{ summary_block(paper.summary, tk) }}{% endif %}
-    {% for sec in sections %}{{ section_block(sec, tk) }}{% endfor %}
+    <div class="pflow">
+      {% if paper.summary %}<div class="psec">{{ summary_block(paper.summary, tk) }}</div>{% endif %}
+      {% for sec in sections %}<div class="psec">{{ section_block(sec, tk) }}</div>{% endfor %}
+    </div>
   {% endif %}
 
   {% if not paper.name and not paper.summary and not sections %}

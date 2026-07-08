@@ -181,15 +181,104 @@ def reformat_resume(
     raw = provider.complete(
         system, user, json_mode=True, max_output_tokens=1200, temperature=0.3
     )
+    paper = coerce_paper(_safe_json(raw))
+    paper["model"] = provider.model
+    return paper
+
+
+def improve_resume(
+    resume_text: str,
+    instructions: list[str],
+    provider: Optional[LLMProvider] = None,
+) -> dict:
+    """The resume builder's rewrite step: apply the fixes the user ticked (from
+    their resume grade) plus any instructions they typed themselves — honestly.
+
+    Returns ``{"paper": <same shape as reformat_resume>, "changes": [...],
+    "model": str}``. ``changes`` is the log the builder shows ("what changed &
+    why"): each item is ``{"area", "what", "why", "needs_you"}`` where
+    ``needs_you`` marks an edit that left a [bracketed placeholder] only the
+    candidate can fill in (a real metric, a date). With no instructions it does
+    a clean reorganization and still logs what it touched. Same honesty rules
+    as the rest of this module: never invents facts; defensive parsing.
+    """
+    provider = provider or get_default_provider()
+    resume_text = (resume_text or "").strip()
+    if not resume_text:
+        raise LLMError("No resume text on file. Upload a resume first.")
+
+    todo = [str(i).strip()[:300] for i in (instructions or []) if str(i).strip()][:12]
+    todo_block = "\n".join(f"{n}. {t}" for n, t in enumerate(todo, 1)) or (
+        "(none — do a clean, honest reorganization with light tightening, "
+        "and log what you changed)"
+    )
+
+    system = (
+        "You are an honest, meticulous resume editor. You IMPROVE a candidate's "
+        "EXISTING resume: apply each numbered instruction, plus obvious cleanup "
+        "(standard section headings, consistent formatting, tighter wording). "
+        "HARD RULES: NEVER invent employers, job titles, dates, numbers, metrics, "
+        "tools, or skills that are not in the source resume. Where an instruction "
+        "needs a fact only the candidate knows (e.g. 'add metrics'), rewrite the "
+        "line with a short [bracketed placeholder] such as [X%] or [team size] "
+        'and mark that change "needs_you": true. If an instruction cannot be '
+        "done honestly from the source text, skip it and say so in the change "
+        "log. Reply with ONE JSON object with these keys:\n"
+        '"name" (from the resume, or ""), '
+        '"headline" (their role line, or ""), '
+        '"contact" (ONE line joining only the parts present, with " · "; "" if none), '
+        '"summary" (2-3 sentence professional summary, facts from the resume only), '
+        '"sections" (JSON array in this order WHEN the source has content: '
+        "Experience, Projects, Skills, Education, Certifications; each section is "
+        '{"heading": str, "entries": [{"role": str, "org": str, "dates": str, '
+        '"bullets": [str, ...]}]}; for Skills use ONE entry whose "bullets" is '
+        'the skill list and whose "role", "org" and "dates" are ""), and\n'
+        '"changes" (3-10 items, most important first, covering EVERY meaningful '
+        'edit you made: {"area": short location like "Summary" or "Experience — '
+        '<company>", "what": the edit in one plain sentence, "why": how it '
+        'helps in one short sentence, "needs_you": true only if you left a '
+        "[placeholder] there}). The change log must be honest — never claim an "
+        "edit you did not make."
+    )
+    user = (
+        f"=== INSTRUCTIONS TO APPLY ===\n{todo_block}\n\n"
+        f"=== CANDIDATE RESUME ===\n{resume_text[:_BUILDER_CAP]}\n\n"
+        "Rewrite the resume per the instructions and return the JSON object."
+    )
+    raw = provider.complete(
+        system, user, json_mode=True, max_output_tokens=1700, temperature=0.3
+    )
     data = _safe_json(raw)
     return {
-        "name": _as_text(data.get("name")),
-        "headline": _as_text(data.get("headline")),
-        "contact": _one_line(data.get("contact")),
-        "summary": _as_text(data.get("summary")),
-        "sections": _coerce_sections(data.get("sections")),
+        "paper": coerce_paper(data),
+        "changes": _coerce_changes(data.get("changes")),
         "model": provider.model,
     }
+
+
+def paper_to_text(paper: dict) -> str:
+    """Flatten a builder paper back into plain resume text — what gets graded
+    and what a saved copy stores as its ``raw_text``."""
+    paper = paper or {}
+    lines: list[str] = []
+    for key in ("name", "headline", "contact"):
+        if paper.get(key):
+            lines.append(str(paper[key]))
+    if paper.get("summary"):
+        lines += ["", "SUMMARY", str(paper["summary"])]
+    for sec in paper.get("sections") or []:
+        heading = str(sec.get("heading") or "").strip()
+        lines += ["", heading.upper() or "SECTION"]
+        for e in sec.get("entries") or []:
+            head = " · ".join(
+                str(e.get(k) or "").strip()
+                for k in ("role", "org", "dates")
+                if str(e.get(k) or "").strip()
+            )
+            if head:
+                lines.append(head)
+            lines += [f"- {b}" for b in (e.get("bullets") or [])]
+    return "\n".join(lines).strip()
 
 
 def tailor_resume_structured(
@@ -238,15 +327,9 @@ def tailor_resume_structured(
     raw = provider.complete(
         system, user, json_mode=True, max_output_tokens=1400, temperature=0.3
     )
-    data = _safe_json(raw)
-    return {
-        "name": _as_text(data.get("name")),
-        "headline": _as_text(data.get("headline")),
-        "contact": _one_line(data.get("contact")),
-        "summary": _as_text(data.get("summary")),
-        "sections": _coerce_sections(data.get("sections")),
-        "model": provider.model,
-    }
+    paper = coerce_paper(_safe_json(raw))
+    paper["model"] = provider.model
+    return paper
 
 
 # The five portal questions every kit drafts, in display order.
@@ -457,7 +540,10 @@ def grade_resume(
         ' "suggestions": [3-5 items, ordered most valuable first:\n'
         '   {"priority": "fix"|"improve"|"good", "title": "<=9 words, '
         'imperative", "detail": "1-2 specific sentences quoting or citing the '
-        'resume", "points": <estimated overall points gained by doing it; 0 '
+        'resume", "where": "a short quote (<=12 words) copied EXACTLY, '
+        "word-for-word, from the resume text that this points at; \"\" when it "
+        'is about something missing or the document overall", '
+        '"points": <estimated overall points gained by doing it; 0 '
         'for "good" items>}\n'
         " ] — include exactly ONE \"good\" item LAST acknowledging what the "
         "resume already does well.}"
@@ -472,16 +558,26 @@ def grade_resume(
     raw = provider.complete(
         system, user, json_mode=True, max_output_tokens=900, temperature=0.2
     )
-    data = _safe_json(raw)
+    grade = coerce_grade(_safe_json(raw))
+    grade["model"] = provider.model
+    return grade
+
+
+def coerce_grade(data) -> dict:
+    """Defensively shape a resume grade — a fresh model reply (flat category
+    keys) or a stored/round-tripped grade_json (nested "categories") — into the
+    exact dict the Resume-score card renders. Clamps every number."""
+    if not isinstance(data, dict):
+        data = {}
+    src = data.get("categories") if isinstance(data.get("categories"), dict) else data
 
     def _cat(key: str) -> int:
         try:
-            return max(0, min(25, int(data.get(key))))
+            return max(0, min(25, int(src.get(key))))
         except (TypeError, ValueError):
             return 0
 
     cats = {key: _cat(key) for key, _label in GRADE_CATEGORIES}
-    overall = sum(cats.values())
 
     suggestions: list[dict] = []
     for s in data.get("suggestions") or []:
@@ -498,16 +594,17 @@ def grade_resume(
         if not title:
             continue
         suggestions.append(
-            {"priority": pr, "title": title, "detail": _as_text(s.get("detail")), "points": 0 if pr == "good" else pts}
+            {"priority": pr, "title": title, "detail": _as_text(s.get("detail")),
+             "where": _as_text(s.get("where"))[:160],
+             "points": 0 if pr == "good" else pts}
         )
-    suggestions = suggestions[:6]
 
     return {
-        "overall": overall,
+        "overall": sum(cats.values()),
         "categories": cats,
-        "headline": _as_text(data.get("headline")) or "Graded",
-        "suggestions": suggestions,
-        "model": provider.model,
+        "headline": _as_text(data.get("headline"))[:80] or "Graded",
+        "suggestions": suggestions[:6],
+        "model": _as_text(data.get("model"))[:80],
     }
 
 
@@ -516,6 +613,44 @@ def _one_line(value) -> str:
     if isinstance(value, list):
         return " · ".join(str(v).strip() for v in value if str(v).strip())
     return str(value or "").strip()
+
+
+def coerce_paper(data) -> dict:
+    """Defensively shape paper JSON — a model reply, or builder state that
+    round-tripped through the browser — into exactly what _resume_paper.html
+    renders. Length caps keep tampered/degenerate payloads harmless."""
+    if not isinstance(data, dict):
+        data = {}
+    return {
+        "name": _as_text(data.get("name"))[:120],
+        "headline": _as_text(data.get("headline"))[:200],
+        "contact": _one_line(data.get("contact"))[:300],
+        "summary": _as_text(data.get("summary"))[:2000],
+        "sections": _coerce_sections(data.get("sections")),
+    }
+
+
+def _coerce_changes(value) -> list[dict]:
+    """Defensively shape the builder's change log ("what changed & why")."""
+    if not isinstance(value, list):
+        return []
+    changes: list[dict] = []
+    for ch in value:
+        if isinstance(ch, dict):
+            what = _as_text(ch.get("what"))[:400]
+            if not what:
+                continue
+            changes.append({
+                "area": _as_text(ch.get("area"))[:80],
+                "what": what,
+                "why": _as_text(ch.get("why"))[:400],
+                "needs_you": bool(ch.get("needs_you")),
+            })
+        else:  # tolerate a bare string as a change with no area/why
+            what = _as_text(ch)[:400]
+            if what:
+                changes.append({"area": "", "what": what, "why": "", "needs_you": False})
+    return changes[:12]
 
 
 def _coerce_sections(value) -> list[dict]:

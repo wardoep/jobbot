@@ -1,114 +1,549 @@
 {% extends "base.html" %}
 {% block title %}Resume builder · JobBot{% endblock %}
+{% block main_class %} hm-page bld-lock{% endblock %}
 {% block body %}
 <style>
+  /* ------- layout: 3 columns on desktop, viewport-locked (no page scroll) --
+     left = controls · CENTER = the whole resume, readable · right = results.
+     The paper flows as two side-by-side columns (a "two-page spread") so all
+     of it fits on screen at full text size — no zooming, no shrinking to a
+     thumbnail. Below 1100px it stacks and scrolls normally. */
+  .builder-cols { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 18px; }
+  .builder-left { width: 270px; flex: none; }
+  .builder-paperrail { flex: 1 1 100%; min-width: 0; }   /* center: the resume */
+  .builder-mid { width: 290px; flex: none; }             /* right: the results */
+  @media (max-width: 780px) { .builder-left, .builder-mid { width: 100%; } }
+  @media (min-width: 1100px) {
+    /* viewport lock: full-width canvas, trimmed padding + compact header so
+       the columns (sized by JS) end exactly at the fold — no page scroll */
+    .jb-main.bld-lock { max-width: 1720px; padding-bottom: 12px; }
+    .jb-main.bld-lock .bld-backp { display: none; }  /* sidebar nav covers it */
+    /* compact header: the workspace explains itself — every pixel goes to the paper */
+    .jb-main.bld-lock > .eyebrow { display: none; }
+    .jb-main.bld-lock h1 { font-size: 24px; margin: 0 0 6px; }
+    .jb-main.bld-lock > .sub { display: none; }
+    .builder-cols { flex-wrap: nowrap; margin-top: 14px; }  /* JS sets the locked height */
+    .builder-paperrail { flex: 1; }
+    .builder-left, .builder-mid {
+      overflow-y: auto; height: 100%; padding-right: 3px;
+      scrollbar-width: thin;
+    }
+    .builder-paperrail {
+      height: 100%; overflow: hidden;
+      display: flex; flex-direction: column; align-items: center;
+    }
+    .bld-runwrap {
+      position: sticky; bottom: 0; margin-top: 6px; padding: 12px 0 2px;
+      background: linear-gradient(180deg, transparent, var(--bg) 30%);
+    }
+    /* two-page-spread flow inside the paper. Big boxed sections are allowed to
+       continue across the column break (side borders carry through) — forcing
+       them whole would leave one column towering over the other. */
+    .pflow { columns: 2; column-gap: 26px; }
+    .pent { break-inside: avoid; }                /* a job entry never splits */
+    .phead, .bld-sech { break-after: avoid; }     /* headings stick to content */
+    .bld-addbox, .bld-docmark { break-inside: avoid; }
+    #paper-pane > div { padding: 20px 22px !important; }  /* tighter paper edges */
+    /* compact print for the before-view so a full page fits at readable size
+       (prefixed selectors so they beat the base .bld-* rules further down) */
+    .builder-paperrail .bld-paper { font-size: 11px; line-height: 1.45; }
+    .builder-paperrail .bld-sec + .bld-sec { margin-top: 9px; }
+    .builder-paperrail .bld-sec.boxed { padding: 12px 10px 8px; margin: 14px -4px 6px; }
+    .builder-paperrail .bld-sech { font-size: 10px; margin-bottom: 3px; }
+    .builder-paperrail .bld-docmark { padding: 6px 9px; margin-bottom: 10px; font-size: 11px; }
+    .builder-paperrail .bld-addbox { padding: 9px 10px 8px; margin-top: 12px; font-size: 11px; }
+    .builder-paperrail .bld-boxtag { font-size: 9.5px; padding: 2px 8px; }
+  }
+  #paper-fit { overflow: hidden; border-radius: 10px; }
+  #paper-zoom { transform-origin: top left; }
+  @media (max-width: 1099px) {
+    #paper-fit { width: auto !important; height: auto !important; overflow: visible; }
+    #paper-zoom { width: auto !important; transform: none !important; margin: 0 !important; }
+  }
+
+  /* ------- step headers ------- */
+  .bld-step {
+    display: flex; align-items: center; gap: 9px;
+    font-family: var(--font-display); font-weight: 700; font-size: 13.5px;
+    color: var(--text); margin: 22px 0 10px;
+  }
+  .builder-left .bld-step:first-child { margin-top: 0; }
+  .bld-num {
+    width: 21px; height: 21px; border-radius: 50%; flex: none;
+    background: var(--info-bg); color: var(--blue); border: 1px solid var(--info-bd);
+    display: grid; place-items: center; font-size: 11px; font-weight: 800;
+  }
+  .bld-opt {
+    font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--faint); margin-left: 2px;
+  }
+  .bld-hint { font-size: 12.5px; color: var(--faint); line-height: 1.5; }
+
+  /* ------- step 1: fix checkboxes ------- */
+  .bld-fixes { border: 1px solid var(--border); border-radius: 12px; background: var(--surface); overflow: hidden; }
+  .bld-fix {
+    display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px;
+    border-bottom: 1px solid var(--border); cursor: pointer; margin: 0;
+  }
+  .bld-fix:last-child { border-bottom: 0; }
+  .bld-fix:hover { background: var(--ghost-bg); }
+  .bld-fix input { margin-top: 2px; flex: none; }
+  .bld-fix .rs-chip { margin-top: 1px; }
+  .bld-fix-body { flex: 1; min-width: 0; }
+  .bld-fix-title { display: block; font-weight: 600; font-size: 13px; color: var(--text); line-height: 1.35; }
+  .bld-fix-detail { display: block; font-size: 11.5px; color: var(--text-2); margin-top: 2px; line-height: 1.45; }
+  .bld-fix-pts {
+    flex: none; font-family: var(--font-display); font-weight: 700; font-size: 12px;
+    color: var(--green); margin-top: 2px; white-space: nowrap;
+  }
+
+  /* ------- step 2: your own instruction bubbles ------- */
+  .bld-bubbles { display: flex; flex-wrap: wrap; gap: 7px; }
+  .bld-bubbles:not(:empty) { margin-bottom: 9px; }
+  .bld-bubble {
+    display: inline-flex; align-items: center; gap: 6px; max-width: 100%;
+    background: var(--info-bg); border: 1px solid var(--info-bd); color: var(--text);
+    border-radius: 999px; padding: 5px 7px 5px 12px;
+    font-size: 12.5px; font-weight: 600; line-height: 1.35;
+  }
+  .bld-bubble .bld-x {
+    border: 0; background: transparent; color: var(--faint); cursor: pointer;
+    font-size: 15px; line-height: 1; padding: 2px 5px; border-radius: 50%;
+    box-shadow: none; margin: 0;
+  }
+  .bld-bubble .bld-x:hover { color: var(--red); background: var(--red-bg); transform: none; filter: none; }
+  .bld-addrow { display: flex; gap: 8px; align-items: stretch; }
+  .bld-addrow input { flex: 1; min-width: 0; }
+
+  /* ------- step 3: template cards + mini-paper thumbs ------- */
   .tpl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .tpl-card {
     position: relative; display: block; border: 1px solid var(--border);
     border-radius: 14px; padding: 10px; background: var(--surface); cursor: pointer;
     box-shadow: 0 12px 30px -26px rgba(15,23,48,.3);
-    transition: border-color .15s, box-shadow .15s;
+    transition: border-color .15s, box-shadow .15s; margin: 0;
   }
   .tpl-card input { position: absolute; opacity: 0; pointer-events: none; }
-  .tpl-card .tpl-thumb {
-    height: 84px; background: #fff; border: 1px solid #eef2f8; border-radius: 8px;
-    padding: 9px; overflow: hidden;
-  }
   .tpl-card .tpl-name { font-weight: 700; font-size: 13px; margin-top: 8px; color: var(--text); }
   .tpl-card .tpl-blurb { font-size: 11px; color: var(--faint); margin-top: 2px; }
   .tpl-card:has(input:checked) {
     border: 2px solid var(--blue); padding: 9px;
-    box-shadow: 0 14px 30px -18px rgba(37,99,235,.5);
+    box-shadow: 0 14px 30px -18px rgba(99,102,241,.5);
   }
   .tpl-card:has(input:checked) .tpl-name { color: var(--blue); }
-  .builder-cols { display: flex; gap: 24px; flex-wrap: wrap; margin-top: 18px; }
-  .builder-left { width: 340px; flex: none; }
-  .builder-right { flex: 1; min-width: 330px; }
-  @media (max-width: 760px) {
-    .builder-left { width: 100%; }
+  /* the thumb is a real miniature resume, always "paper" white like the preview */
+  .tpl-thumb {
+    height: 132px; background: #fff; border: 1px solid #eef2f8; border-radius: 8px;
+    padding: 10px 11px; overflow: hidden; display: flex; flex-direction: column;
+    color: #0f1730; font-family: -apple-system, system-ui, sans-serif;
   }
+  .tp-bar { height: 3px; width: 24px; border-radius: 2px; margin-bottom: 5px; flex: none; }
+  .tp-name { font-size: 10.5px; font-weight: 700; letter-spacing: -.01em; line-height: 1.2; }
+  .tp-role { font-size: 6.5px; font-weight: 600; margin-top: 1px; }
+  .tp-meta { font-size: 5.5px; color: #94a3b8; margin-top: 2px; }
+  .tp-h {
+    font-size: 5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+    margin: 7px 0 3px; flex: none;
+  }
+  .tp-rule { border-bottom: 1px solid #e6ecf6; padding-bottom: 2px; }
+  .tp-line { display: block; height: 3px; border-radius: 2px; background: #eef2f8; margin-top: 3px; flex: none; }
+  .tp-center { align-items: center; text-align: center; }
+  .tp-center .tp-line { width: 100%; }
+  .tp-cols { flex-direction: row; gap: 6px; padding: 8px; }
+  .tp-side { width: 37%; flex: none; border-radius: 5px; padding: 6px 7px; display: flex; flex-direction: column; }
+  .tp-mainc { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+  /* ------- result: score strip ------- */
+  .bld-scorestrip { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+  .bld-scorebox { display: flex; flex-direction: column; align-items: center; min-width: 58px; }
+  .bld-scorelabel {
+    font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--faint); margin-bottom: 2px;
+  }
+  .bld-scorebox b {
+    font-family: var(--font-display); font-size: 31px; line-height: 1.1;
+    color: var(--text-2); font-variant-numeric: tabular-nums;
+  }
+  .bld-scorebox b.after { color: var(--text); }
+  .bld-scorebox b.after.up { color: var(--green); }
+  .bld-scorebox b.after.down { color: var(--amber); }
+  .bld-arrow { font-size: 20px; color: var(--faint); }
+  .bld-delta {
+    font-family: var(--font-display); font-weight: 700; font-size: 12.5px;
+    border-radius: 999px; padding: 4px 11px; border: 1px solid transparent; white-space: nowrap;
+  }
+  .bld-delta.up { background: var(--green-bg); color: var(--green); border-color: var(--green-bd); }
+  .bld-delta.down { background: var(--amber-bg); color: var(--amber); border-color: var(--amber-bd); }
+  .bld-delta.flat { background: var(--ghost-bg); color: var(--ghost-fg); }
+  .bld-scorenote { flex: 1; min-width: 170px; font-size: 12px; color: var(--faint); line-height: 1.5; }
+
+  /* ------- result: change log ------- */
+  .bld-eyebrow {
+    font-family: var(--font-display); font-weight: 600; font-size: 11px;
+    letter-spacing: .14em; text-transform: uppercase; color: var(--faint); margin: 0 0 4px;
+  }
+  .bld-chgnum {
+    flex: none; width: 21px; height: 21px; border-radius: 50%; margin-top: 1px;
+    background: var(--info-bg); border: 1px solid var(--info-bd); color: var(--blue);
+    display: grid; place-items: center;
+    font-family: var(--font-display); font-size: 10.5px; font-weight: 800;
+  }
+  .bld-area { color: var(--text); font-weight: 700; }
+  .bld-next-add {
+    display: inline-flex; align-items: center; gap: 5px; margin-top: 7px;
+    border: 1px solid var(--info-bd); background: var(--surface); color: var(--link);
+    border-radius: 8px; padding: 5px 10px; box-shadow: none;
+    font-family: var(--font-display); font-weight: 600; font-size: 11.5px; line-height: 1.2;
+  }
+  .bld-next-add:hover { filter: none; background: var(--ghost-bg); }
+  .bld-needs {
+    flex: none; margin-top: 2px; border-radius: 7px; padding: 3px 9px;
+    font-family: var(--font-display); font-size: 10px; font-weight: 700;
+    letter-spacing: .08em; text-transform: uppercase;
+    background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-bd);
+  }
+
+  /* ------- before view: "your resume today" with problem boxes ------- */
+  /* the paper is always white like the preview, so these use fixed inks */
+  .bld-paper {
+    background: #fff; color: #334155; border: 1px solid #eef2f8; border-radius: 10px;
+    padding: 22px 20px; box-shadow: 0 18px 44px -26px rgba(15,23,48,.45);
+    font-size: 12px; line-height: 1.55;
+  }
+  .bld-sec { position: relative; border-radius: 8px; }
+  .bld-sec + .bld-sec { margin-top: 12px; }
+  .bld-sec.boxed { border: 1.5px solid; padding: 16px 12px 10px; margin: 18px -4px 8px; }
+  .bld-sec.boxed.fix { border-color: rgba(220,38,38,.5); background: rgba(220,38,38,.045); }
+  .bld-sec.boxed.improve { border-color: rgba(217,119,6,.5); background: rgba(217,119,6,.05); }
+  .bld-tags { position: absolute; top: -11px; right: 10px; display: flex; gap: 6px; }
+  .bld-boxtag {
+    display: inline-flex; align-items: center; background: #fff; border: 1px solid;
+    border-radius: 999px; padding: 2px 9px; white-space: nowrap;
+    font-family: var(--font-display); font-size: 10.5px; font-weight: 800; letter-spacing: .02em;
+  }
+  .bld-boxtag.fix { color: #dc2626; border-color: rgba(220,38,38,.55); }
+  .bld-boxtag.improve { color: #d97706; border-color: rgba(217,119,6,.55); }
+  .bld-sech {
+    font-weight: 700; font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+    color: #0f1730; margin-bottom: 4px;
+  }
+  .bld-sect { white-space: pre-wrap; overflow-wrap: anywhere; }
+  .bld-mark { border-radius: 3px; padding: 0 2px; color: inherit; }
+  .bld-mark.fix { background: rgba(220,38,38,.13); box-shadow: inset 0 -2px rgba(220,38,38,.5); }
+  .bld-mark.improve { background: rgba(217,119,6,.15); box-shadow: inset 0 -2px rgba(217,119,6,.55); }
+  .bld-mark sup { font-size: 9px; font-weight: 800; margin-left: 2px; }
+  .bld-mark.fix sup { color: #dc2626; }
+  .bld-mark.improve sup { color: #d97706; }
+  .bld-docmark {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    border: 1.5px dashed; border-radius: 8px; padding: 8px 10px; margin-bottom: 14px;
+    font-size: 12px; font-weight: 600;
+  }
+  .bld-docmark.fix { border-color: rgba(220,38,38,.5); background: rgba(220,38,38,.045); color: #991b1b; }
+  .bld-docmark.improve { border-color: rgba(217,119,6,.5); background: rgba(217,119,6,.05); color: #92400e; }
+  .bld-addbox {
+    position: relative; border: 1.5px dashed; border-radius: 8px;
+    padding: 12px 12px 10px; margin-top: 18px; font-size: 12px;
+  }
+  .bld-addbox.fix { border-color: rgba(220,38,38,.5); background: rgba(220,38,38,.045); }
+  .bld-addbox.improve { border-color: rgba(217,119,6,.5); background: rgba(217,119,6,.05); }
+  .bld-addbox b { display: block; font-size: 12.5px; color: #0f1730; }
+  .bld-addbox span { color: #64748b; }
+  .bld-addbox .bld-boxtag { position: absolute; top: -11px; right: 10px; }
+
+  /* ------- result: save bar + placeholder ------- */
+  .bld-savebar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+  .bld-note { flex-basis: 100%; font-size: 12px; color: var(--faint); line-height: 1.5; margin-top: 2px; }
+  .bld-savemsg { color: var(--red); font-size: 12.5px; font-weight: 600; }
+  .bld-placeholder {
+    border: 2px dashed var(--border-input); border-radius: 12px;
+    padding: 60px 26px; text-align: center; background: var(--inset);
+  }
+  .bld-placeholder > b { display: block; font-family: var(--font-display); font-weight: 700; font-size: 15px; color: var(--text); margin-top: 10px; }
+  .bld-placeholder span { display: block; font-size: 13px; color: var(--faint); margin-top: 5px; line-height: 1.55; max-width: 380px; margin-left: auto; margin-right: auto; }
 </style>
 
 <p class="eyebrow">Documents</p>
 <h1 class="sg">Resume builder</h1>
-<p class="sub">Pick a template and JobBot reformats your resume to match — same content,
-  polished new look. This is a preview only; it never changes your uploaded files.</p>
-<p><a href="/resumes" class="muted" style="font-weight:600;font-size:13px">← Back to resumes</a></p>
+<p class="sub">Tick the fixes to apply, add your own notes, pick a look — JobBot rewrites your
+  resume honestly, shows you every change, and re-scores it. Your uploaded files are never
+  touched; saving adds a new copy.</p>
+<p class="bld-backp"><a href="/resumes" class="muted" style="font-weight:600;font-size:13px">← Back to resumes</a></p>
 
 {% if not llm_ready %}
   <div class="flash info" style="position:static;transform:none;margin:18px 0">
     The assistant isn't configured yet, so the resume builder is unavailable.
     Add an LLM provider key to enable it.
   </div>
-{% elif not has_resume %}
+{% elif not target %}
   <div class="card" style="margin-top:18px">
     <h2 style="margin-top:0">Upload a resume first</h2>
-    <p class="muted">The builder reformats <em>your</em> resume, so there's nothing to
+    <p class="muted">The builder improves <em>your</em> resume, so there's nothing to
       build from yet.</p>
     <a class="btn" href="/resumes">Go to Resumes</a>
   </div>
 {% else %}
-  <div class="builder-cols">
+  <form id="builder-form" class="builder-cols" onsubmit="return false">
+    <input type="hidden" name="doc_id" value="{{ target.id }}">
+
     <div class="builder-left">
-      <form>
-        <div class="tpl-grid">
-          {% for t in templates %}
+      {% if docs|length > 1 %}
+        <label for="bld-doc" style="margin-top:0">Which resume?</label>
+        <select id="bld-doc" onchange="location='/resumes/builder?doc='+this.value" style="margin-bottom:18px">
+          {% for d in docs %}
+            <option value="{{ d.id }}" {{ 'selected' if d.id == target.id }}>
+              {{ d.filename }}{% if d.grade_json %} — {{ d.grade_json.overall }}/100{% endif %}
+            </option>
+          {% endfor %}
+        </select>
+      {% endif %}
+
+      <div id="fix-step">
+        {% with score = before, refreshed = false %}
+          {% include "_builder_fixes.html" %}
+        {% endwith %}
+      </div>
+
+      <div class="bld-step"><span class="bld-num">2</span> Your own instructions <span class="bld-opt">optional</span></div>
+      <div class="bld-bubbles" id="bubble-list"></div>
+      <div class="bld-addrow">
+        <input type="text" id="custom-input" maxlength="300"
+               placeholder="e.g. Make my summary punchier">
+        <button type="button" class="btn small" onclick="addBubble()">Add</button>
+      </div>
+      <p class="bld-hint" style="margin:7px 0 0">Anything you'd tell an editor — press Enter or
+        Add after each note. JobBot applies them without inventing facts.</p>
+
+      <div class="bld-step"><span class="bld-num">3</span> Pick a look</div>
+      <div class="tpl-grid">
+        {% for t in templates %}
           <label class="tpl-card">
             <input type="radio" name="template" value="{{ t.key }}"
                    {% if t.key == selected %}checked{% endif %}>
-            <div class="tpl-thumb">
-              {% if t.key == 'modern' %}
-                <div style="height:8px;background:#2563eb;border-radius:3px;width:62%"></div>
-                <div style="height:5px;background:#dbe7ff;border-radius:3px;margin-top:8px"></div>
-                <div style="height:5px;background:#eef2f8;border-radius:3px;margin-top:5px"></div>
-                <div style="height:5px;background:#eef2f8;border-radius:3px;margin-top:5px;width:80%"></div>
-              {% elif t.key == 'classic' %}
-                <div style="height:7px;background:#0f1730;border-radius:3px;width:50%;margin:0 auto"></div>
-                <div style="height:4px;background:#e2e8f3;border-radius:3px;width:34%;margin:6px auto 0"></div>
-                <div style="height:5px;background:#eef2f8;border-radius:3px;margin-top:9px"></div>
-                <div style="height:5px;background:#eef2f8;border-radius:3px;margin-top:5px"></div>
-              {% elif t.key == 'twocol' %}
-                <div style="display:flex;gap:6px;height:100%">
-                  <div style="width:34%;background:#ecfdf8;border-radius:4px"></div>
-                  <div style="flex:1">
-                    <div style="height:6px;background:#cdeee7;border-radius:3px;width:70%"></div>
-                    <div style="height:5px;background:#eef2f8;border-radius:3px;margin-top:7px"></div>
-                    <div style="height:5px;background:#eef2f8;border-radius:3px;margin-top:5px"></div>
-                  </div>
+            {% if t.key == 'modern' %}
+              <div class="tpl-thumb">
+                <i class="tp-bar" style="background:#2563eb"></i>
+                <b class="tp-name">Alex Rivera</b>
+                <span class="tp-role" style="color:#2563eb">Senior Product Manager</span>
+                <span class="tp-meta">Hartford, CT · alex@rivera.dev · (860) 555-0102</span>
+                <span class="tp-h" style="color:#2563eb">Summary</span>
+                <i class="tp-line" style="width:96%"></i><i class="tp-line" style="width:84%"></i>
+                <span class="tp-h" style="color:#2563eb">Experience</span>
+                <i class="tp-line" style="width:92%"></i><i class="tp-line" style="width:70%"></i>
+              </div>
+            {% elif t.key == 'classic' %}
+              <div class="tpl-thumb tp-center" style="font-family:Georgia,'Times New Roman',serif">
+                <b class="tp-name">Alex Rivera</b>
+                <span class="tp-meta">Hartford, CT · alex@rivera.dev · (860) 555-0102</span>
+                <span class="tp-h tp-rule" style="color:#0f1730;width:100%">Experience</span>
+                <i class="tp-line" style="width:94%"></i><i class="tp-line" style="width:86%"></i><i class="tp-line" style="width:90%"></i>
+                <span class="tp-h tp-rule" style="color:#0f1730;width:100%">Education</span>
+                <i class="tp-line" style="width:68%"></i>
+              </div>
+            {% elif t.key == 'twocol' %}
+              <div class="tpl-thumb tp-cols">
+                <div class="tp-side" style="background:#ecfdf8">
+                  <span class="tp-h" style="color:#0d9488;margin-top:0">Contact</span>
+                  <i class="tp-line" style="width:90%;background:#d5f0e9"></i><i class="tp-line" style="width:72%;background:#d5f0e9"></i>
+                  <span class="tp-h" style="color:#0d9488">Skills</span>
+                  <i class="tp-line" style="width:82%;background:#d5f0e9"></i><i class="tp-line" style="width:68%;background:#d5f0e9"></i><i class="tp-line" style="width:76%;background:#d5f0e9"></i>
                 </div>
-              {% else %}
-                <div style="height:6px;background:#0f1730;border-radius:3px;width:44%"></div>
-                <div style="height:4px;background:#eef2f8;border-radius:3px;margin-top:13px;width:90%"></div>
-                <div style="height:4px;background:#eef2f8;border-radius:3px;margin-top:9px;width:70%"></div>
-              {% endif %}
-            </div>
+                <div class="tp-mainc">
+                  <b class="tp-name" style="font-size:9.5px">Alex Rivera</b>
+                  <span class="tp-role" style="color:#0d9488">Senior Product Manager</span>
+                  <span class="tp-h" style="color:#0d9488">Experience</span>
+                  <i class="tp-line" style="width:94%"></i><i class="tp-line" style="width:82%"></i><i class="tp-line" style="width:88%"></i>
+                </div>
+              </div>
+            {% else %}
+              <div class="tpl-thumb">
+                <b class="tp-name">Alex Rivera</b>
+                <span class="tp-meta" style="margin-top:2px">Product Manager · Hartford, CT</span>
+                <span class="tp-h" style="color:#475569;margin-top:13px">Experience</span>
+                <i class="tp-line" style="width:88%"></i><i class="tp-line" style="width:72%"></i>
+                <span class="tp-h" style="color:#475569">Skills</span>
+                <i class="tp-line" style="width:58%"></i>
+              </div>
+            {% endif %}
             <div class="tpl-name">{{ t.label }}</div>
             <div class="tpl-blurb">{{ t.blurb }}</div>
           </label>
-          {% endfor %}
-        </div>
+        {% endfor %}
+      </div>
+      <p class="bld-hint" style="margin:8px 0 0">The look only changes the layout, never the
+        words — and after a run you can switch looks instantly.</p>
 
-        <button type="button" class="btn block sg" style="margin-top:16px"
+      <div class="bld-runwrap">
+        <button type="button" class="btn block sg"
                 hx-post="/resumes/builder/run"
-                hx-target="#builder-preview"
+                hx-target="#builder-result"
                 hx-swap="innerHTML"
-                hx-include="closest form"
                 hx-indicator="#builder-spin"
-                hx-disabled-elt="this">✨ Reformat my resume</button>
-        <span id="builder-spin" class="htmx-indicator muted">Reformatting…</span>
-      </form>
+                hx-disabled-elt="this">✨ Improve my resume</button>
+        <div id="builder-spin" class="htmx-indicator bld-hint" style="margin-top:8px">
+          Rewriting and re-scoring — this usually takes 20–40 seconds…</div>
+      </div>
     </div>
 
-    <div class="builder-right">
-      <div id="builder-preview">
-        <div style="border:2px dashed var(--border-input);border-radius:12px;
-                    padding:64px 24px;text-align:center;background:var(--inset)">
-          <div style="font-size:34px;margin-bottom:10px">📄</div>
-          <div class="sg" style="font-weight:700;font-size:15px">Your reformatted resume appears here</div>
-          <div class="muted" style="font-size:13px;margin-top:4px">Pick a template and hit Reformat.</div>
+    <div class="builder-paperrail">
+      <div id="paper-rail">
+        {% if annotations %}
+          <div class="bld-eyebrow">Your resume today{% if before is not none %} · scored {{ before }} / 100{% endif %}</div>
+          {% if annotations.any %}
+            <p class="bld-hint" style="margin:2px 0 10px">The whole page, shown as a two-column
+              spread — the numbered boxes are the fixes on the left, with their points.</p>
+          {% elif not fix_suggestions %}
+            <p class="bld-hint" style="margin:2px 0 10px">The resume the builder starts from —
+              <a href="/resumes#resume-score">grade it</a> to see its problem spots boxed here.</p>
+          {% else %}
+            <p class="bld-hint" style="margin:2px 0 10px">The resume the builder starts from.</p>
+          {% endif %}
+          <div id="paper-fit"><div id="paper-zoom">
+            <div id="paper-pane">
+              <div class="bld-paper">
+                {% for m in annotations.doc_marks %}
+                  <div class="bld-docmark {{ m.priority }}">
+                    <span class="bld-boxtag {{ m.priority }}">{{ m.num }}{% if m.points %} · +{{ m.points }} pts{% endif %}</span>
+                    Whole document — {{ m.title }}
+                  </div>
+                {% endfor %}
+                <div class="pflow">
+                  {% for sec in annotations.sections %}
+                    <div class="bld-sec{% if sec.marks %} boxed {{ sec.marks[0].priority }}{% endif %}">
+                      {% if sec.marks %}
+                        <span class="bld-tags">
+                          {% for m in sec.marks %}
+                            <span class="bld-boxtag {{ m.priority }}" title="{{ m.title }}{% if m.detail %} — {{ m.detail }}{% endif %}">{{ m.num }}{% if m.points %} · +{{ m.points }} pts{% endif %}</span>
+                          {% endfor %}
+                        </span>
+                      {% endif %}
+                      {% if sec.heading %}<div class="bld-sech">{{ sec.heading }}</div>{% endif %}
+                      <div class="bld-sect">{% for p in sec.parts %}{% if p.mark %}<mark class="bld-mark {{ p.mark.priority }}">{{ p.text }}<sup>{{ p.mark.num }}</sup></mark>{% else %}{{ p.text }}{% endif %}{% endfor %}</div>
+                    </div>
+                  {% endfor %}
+                  {% for a in annotations.adds %}
+                    <div class="bld-addbox {{ a.priority }}">
+                      <span class="bld-boxtag {{ a.priority }}">{{ a.num }}{% if a.points %} · +{{ a.points }} pts{% endif %}</span>
+                      <b>＋ {{ a.title }}</b>
+                      {% if a.detail %}<span>{{ a.detail }}</span>{% endif %}
+                    </div>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+          </div></div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="builder-mid">
+      <div id="builder-result">
+        <div class="bld-placeholder">
+          <div style="font-size:34px;line-height:1">📊</div>
+          <b>Your results show up here</b>
+          <span>Hit <b>Improve my resume</b> to see your score before &amp; after, every change
+            explained, and what's still worth fixing. Nothing is saved unless you hit Save.</span>
         </div>
       </div>
     </div>
-  </div>
+  </form>
+
+  <script>
+    function addBubble() {
+      var inp = document.getElementById('custom-input');
+      var text = inp.value.trim();
+      if (!text) return;
+      var chip = document.createElement('span');
+      chip.className = 'bld-bubble';
+      var label = document.createElement('span');
+      label.textContent = text;
+      var hidden = document.createElement('input');
+      hidden.type = 'hidden'; hidden.name = 'custom'; hidden.value = text;
+      var x = document.createElement('button');
+      x.type = 'button'; x.className = 'bld-x'; x.textContent = '×';
+      x.setAttribute('aria-label', 'Remove this instruction');
+      x.onclick = function () { chip.remove(); };
+      chip.appendChild(label); chip.appendChild(hidden); chip.appendChild(x);
+      document.getElementById('bubble-list').appendChild(chip);
+      inp.value = ''; inp.focus();
+    }
+    document.getElementById('custom-input').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); addBubble(); }
+    });
+    // "To raise it further" rows drop their suggestion into the instruction box
+    // so the user can add their real details before running again.
+    function prefillInstruction(btn) {
+      var inp = document.getElementById('custom-input');
+      inp.value = (btn.dataset.instr || '').slice(0, 300);
+      inp.scrollIntoView({behavior: 'smooth', block: 'center'});
+      inp.focus();
+    }
+    // After a run exists, switching the look re-renders the paper instantly (no AI call).
+    document.querySelectorAll('input[name="template"]').forEach(function (r) {
+      r.addEventListener('change', function () {
+        if (document.querySelector('textarea[name="paper_json"]')) {
+          htmx.ajax('POST', '/resumes/builder/restyle',
+                    {source: '#builder-form', target: '#paper-pane', swap: 'innerHTML'});
+        }
+      });
+    });
+
+    // ---- desktop layout: lock the page to the viewport and scale the resume
+    // so ALL of it is visible with no scrolling; click the page to zoom. ----
+    var DESKTOP = function () { return window.innerWidth >= 1100; };
+    function layoutBuilder() {
+      var cols = document.getElementById('builder-form');
+      if (!cols) return;
+      if (DESKTOP()) {
+        var h = window.innerHeight - cols.getBoundingClientRect().top - 14;
+        cols.style.height = Math.max(430, h) + 'px';
+      } else {
+        cols.style.height = '';
+      }
+    }
+    function fitPaper() {
+      var fit = document.getElementById('paper-fit');
+      var zoom = document.getElementById('paper-zoom');
+      var railWrap = document.getElementById('paper-rail');
+      var railBox = document.querySelector('.builder-paperrail');
+      if (!fit || !zoom || !railBox) return;
+      if (!DESKTOP()) {
+        fit.style.width = fit.style.height = ''; fit.style.overflowY = '';
+        zoom.style.width = ''; zoom.style.transform = ''; zoom.style.marginBottom = '';
+        if (railWrap) railWrap.style.width = '';
+        return;
+      }
+      // render the paper at the center column's real width (two-page spread),
+      // then scale ONLY if it's still too tall — floored so text stays readable
+      var paperW = Math.max(430, Math.min(880, railBox.clientWidth));
+      zoom.style.width = paperW + 'px';
+      zoom.style.transform = 'none';
+      zoom.style.marginBottom = '';
+      var availH = Math.max(320, window.innerHeight - fit.getBoundingClientRect().top - 18);
+      var natural = zoom.offsetHeight;
+      if (!natural) return;
+      var scale = Math.min(1, availH / natural);
+      if (scale < 0.75) scale = 0.75;  // readability floor; below it, scroll inside
+      var shownH = Math.ceil(natural * scale);
+      if (scale < 1) {
+        zoom.style.transform = 'scale(' + scale + ')';
+        zoom.style.marginBottom = (shownH - natural) + 'px';  // fix scroll extent
+      }
+      fit.style.width = Math.ceil(paperW * scale) + 'px';
+      fit.style.height = Math.min(shownH, availH) + 'px';
+      fit.style.overflowY = shownH > availH + 2 ? 'auto' : 'hidden';
+      // pin the header/hint block to the paper's width so text wraps with it
+      if (railWrap) railWrap.style.width = fit.style.width;
+    }
+    function layoutAll() { layoutBuilder(); fitPaper(); }
+    window.addEventListener('resize', layoutAll);
+    // re-fit AFTER htmx settles — settling re-applies swapped-in attributes,
+    // which would wipe a transform set any earlier than this
+    document.body.addEventListener('htmx:afterSettle', function () {
+      layoutAll(); setTimeout(layoutAll, 120);
+    });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(layoutAll);
+    layoutAll();
+  </script>
 {% endif %}
 {% endblock %}

@@ -1,0 +1,131 @@
+{#- The builder's result pane (HTMX fragment, swapped into #builder-result):
+    before/after score, the "what changed & why" log, the styled paper preview,
+    and the explicit save bar. Styles live in resume_builder.html. -#}
+{% if run_error %}
+  <div class="flash error" style="position:static;transform:none;margin:0">{{ run_error }}</div>
+{% else %}
+  {% set aft = after.overall if after else none %}
+
+  {# ---- score: before → after ---- #}
+  <div class="card bld-scorestrip" style="margin-top:0">
+    <div class="bld-scorebox">
+      <span class="bld-scorelabel">Before</span>
+      <b>{{ before if before is not none else '—' }}</b>
+    </div>
+    <span class="bld-arrow">→</span>
+    <div class="bld-scorebox">
+      <span class="bld-scorelabel">After</span>
+      <b class="after {{ 'up' if aft is not none and (before is none or aft >= before) else 'down' }}">{{ aft if aft is not none else '—' }}</b>
+    </div>
+    {% if aft is not none and before is not none %}
+      {% set d = aft - before %}
+      <span class="bld-delta {{ 'up' if d > 0 else 'down' if d < 0 else 'flat' }}">
+        {{ '+' if d > 0 }}{{ d }} pts</span>
+    {% endif %}
+    <span class="bld-scorenote">
+      {% if aft is none %}
+        The rewrite worked but re-scoring didn't — save anyway and it will be graded on the Resumes page.
+      {% else %}
+        {{ after.headline }} · same AI grader as your Resume-score card.
+      {% endif %}
+    </span>
+  </div>
+
+  {# ---- what changed & why ---- #}
+  <div class="card">
+    <div class="bld-eyebrow">What changed &amp; why</div>
+    {% if changes %}
+      <div class="rs-list">
+        {% for ch in changes %}
+          <div class="rs-row">
+            <span class="bld-chgnum">{{ loop.index }}</span>
+            <div class="rs-body">
+              <div class="rs-title" style="font-size:13.5px">{{ ch.what }}</div>
+              {% if ch.area or ch.why %}
+                <div class="rs-detail">
+                  {%- if ch.area %}<span class="bld-area">{{ ch.area }}</span>{% if ch.why %} · {% endif %}{% endif -%}
+                  {{ ch.why }}
+                </div>
+              {% endif %}
+            </div>
+            {% if ch.needs_you %}<span class="bld-needs">fill in</span>{% endif %}
+          </div>
+        {% endfor %}
+      </div>
+      {% if changes | selectattr('needs_you') | list %}
+        <p class="bld-hint" style="margin:12px 0 0">Rows marked <b>fill in</b> left a
+          [bracketed placeholder] in the preview — JobBot won't invent numbers or dates,
+          so drop in your real ones before sending this to an employer.</p>
+      {% endif %}
+    {% else %}
+      <p class="bld-hint" style="margin:0">No wording changes were reported — the layout
+        was refreshed but your text stayed as it was.</p>
+    {% endif %}
+  </div>
+
+  {# ---- what would raise the NEW score further (from the re-grade) ---- #}
+  {% set nexts = (after.suggestions if after else []) | rejectattr('priority', 'equalto', 'good') | list %}
+  {% if nexts %}
+    <div class="card">
+      <div class="bld-eyebrow">To raise it further</div>
+      <p class="bld-hint" style="margin:2px 0 4px">These mostly need details only you know —
+        real numbers, certifications, projects. Click one to drop it into the instruction box,
+        add your specifics, and run again. JobBot never invents them for you.</p>
+      <div class="rs-list">
+        {% for s in nexts %}
+          <div class="rs-row">
+            <span class="rs-chip {{ s.priority }}">{{ {'fix': 'Fix', 'improve': 'Improve'}.get(s.priority, 'Improve') }}</span>
+            <div class="rs-body">
+              <div class="rs-title" style="font-size:13.5px">{{ s.title }}</div>
+              {% if s.detail %}<div class="rs-detail">{{ s.detail }}</div>{% endif %}
+              <button type="button" class="bld-next-add"
+                      data-instr="{{ s.title }}{% if s.detail %}: {{ s.detail }}{% endif %}"
+                      onclick="prefillInstruction(this)">✎ Add my details</button>
+            </div>
+            {% if s.points %}<span class="rs-pts">+{{ s.points }} pts</span>{% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  {# ---- round-tripped state + explicit save ---- #}
+  <textarea name="paper_json" hidden>{{ paper_json }}</textarea>
+  <textarea name="after_json" hidden>{{ after_json }}</textarea>
+  <div class="bld-savebar">
+    <button type="button" class="btn sg"
+            hx-post="/resumes/builder/save"
+            hx-target="#save-msg" hx-swap="innerHTML"
+            hx-indicator="#save-spin"
+            hx-disabled-elt="this">💾 Save as a new resume</button>
+    <span id="save-spin" class="htmx-indicator muted" style="font-size:13px">Saving…</span>
+    <span id="save-msg"></span>
+    <div class="bld-note">Saves a new copy under <b>Your documents</b> with the score above —
+      your original upload stays untouched. Until you save, nothing is stored. Running again
+      keeps polishing this improved version.</div>
+  </div>
+
+  {#- Out-of-band swap: refresh the step-1 fix list to what the re-grade says is
+      STILL worth fixing, so applied fixes drop off and new ones appear. -#}
+  {% if refresh_fixes | default(false) %}
+    <div id="fix-step" hx-swap-oob="true">
+      {% with fix_suggestions = new_suggestions, score = (after.overall if after else none), refreshed = true %}
+        {% include "_builder_fixes.html" %}
+      {% endwith %}
+    </div>
+  {% endif %}
+
+  {#- Out-of-band swap: the paper rail on the right — the improved resume,
+      scaled by the page JS so the whole thing stays visible without scrolling.
+      Restyle swaps only #paper-pane inside it. -#}
+  <div id="paper-rail" hx-swap-oob="true">
+    <div class="bld-eyebrow">Improved resume{% if after %} · scored {{ after.overall }} / 100{% endif %}</div>
+    <p class="bld-hint" style="margin:2px 0 10px">The whole improved page — switch looks in
+      step 3 and it updates instantly.</p>
+    <div id="paper-fit"><div id="paper-zoom">
+      <div id="paper-pane">
+        {% include "_resume_paper.html" %}
+      </div>
+    </div></div>
+  </div>
+{% endif %}

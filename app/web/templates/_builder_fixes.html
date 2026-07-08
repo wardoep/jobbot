@@ -1,0 +1,35 @@
+{#- Step 1 of the builder (the contents of #fix-step): the tickable fix list.
+    Rendered on page load from the resume's stored grade, and again out-of-band
+    after every run from the fresh re-grade (refreshed=true) so the list always
+    shows what's STILL worth fixing. Checkbox values carry the fix text itself.
+    Context: fix_suggestions (list of grade suggestion dicts, non-"good"),
+    score (current 0-100 or none), refreshed (bool). -#}
+<div class="bld-step" style="margin-top:0"><span class="bld-num">1</span> Fixes to apply
+  {% if score is not none %}<span class="bld-opt">current score {{ score }}</span>{% endif %}
+</div>
+{% if fix_suggestions %}
+  <div class="bld-fixes">
+    {% for s in fix_suggestions %}
+      <label class="bld-fix">
+        <input type="checkbox" name="fixes" value="{{ s.title }}{% if s.detail %}: {{ s.detail }}{% endif %}" checked>
+        <span class="rs-chip {{ s.priority }}">{{ loop.index }} · {{ {'fix': 'Fix', 'improve': 'Improve'}.get(s.priority, 'Improve') }}</span>
+        <span class="bld-fix-body">
+          <span class="bld-fix-title">{{ s.title }}</span>
+          {% if s.detail %}<span class="bld-fix-detail">{{ s.detail }}</span>{% endif %}
+        </span>
+        {% if s.points %}<span class="bld-fix-pts">+{{ s.points }} pts</span>{% endif %}
+      </label>
+    {% endfor %}
+  </div>
+  {% if refreshed %}
+    <p class="bld-hint" style="margin:7px 0 0">↻ Updated after your run — this is what's still
+      worth fixing. Run again to apply these to the improved version, or save it as is.</p>
+  {% endif %}
+{% elif refreshed %}
+  <p class="bld-hint" style="margin:0">🎉 Nothing left to one-tap fix. Add your own
+    instructions below if you want more changes, or save your improved resume.</p>
+{% else %}
+  <p class="bld-hint" style="margin:0">This resume hasn't been graded yet, so there are no
+    one-tap fixes. <a href="/resumes#resume-score">Grade it first</a> — or just type your
+    own instructions below and run.</p>
+{% endif %}
