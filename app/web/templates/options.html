@@ -98,6 +98,45 @@
   .opt-danger{ border-color:var(--red-bd); }
   .opt-divider{ height:1px; background:var(--border); margin:16px 0; }
   .opt-wrap-row{ flex-wrap:wrap; }
+
+  /* ---- inbox watcher card ---- */
+  .ibx-points{ display:flex; flex-direction:column; gap:7px; margin:12px 0 4px; }
+  .ibx-point{ display:flex; gap:9px; align-items:flex-start; font-size:13px; color:var(--text-2); line-height:1.5; }
+  .ibx-point .ic{ flex:none; width:20px; text-align:center; }
+  .ibx-point b{ color:var(--text); }
+  .ibx-privacy{
+    font-size:11.5px; color:var(--faint); line-height:1.6;
+    border:1px dashed var(--border); border-radius:10px; padding:8px 12px; margin:12px 0 14px;
+  }
+  /* the ?-in-a-circle help popover (click to open — works on phones too) */
+  .opt-help{ display:inline-block; position:relative; vertical-align:middle; margin-left:7px; }
+  .opt-help > summary{
+    list-style:none; cursor:pointer; width:18px; height:18px; border-radius:50%;
+    display:inline-flex; align-items:center; justify-content:center;
+    background:var(--info-bg); color:var(--blue); border:1px solid var(--info-bd);
+    font-size:11px; font-weight:800; line-height:1; user-select:none;
+  }
+  .opt-help > summary::-webkit-details-marker{ display:none; }
+  .opt-help[open] > summary{ background:var(--blue); color:#fff; }
+  .opt-pop{
+    position:absolute; z-index:40; top:24px; left:-140px; width:300px;
+    background:var(--surface); border:1px solid var(--border); border-radius:12px;
+    padding:13px 15px; box-shadow:0 18px 44px -18px rgba(0,0,0,.55);
+    font-size:12.5px; color:var(--text-2); line-height:1.6; font-weight:400;
+  }
+  .opt-pop b{ color:var(--text); }
+  .opt-pop ol{ margin:7px 0 0; padding-left:18px; }
+  .opt-pop li{ margin-bottom:5px; }
+  @media (max-width:560px){ .opt-pop{ left:auto; right:-40px; width:260px; } }
+  /* channel picker */
+  .ibx-chan{ display:flex; flex-direction:column; gap:9px; margin-top:8px; }
+  .ibx-chan label.row{ display:flex; align-items:center; gap:9px; font-size:13px; color:var(--text); margin:0; cursor:pointer; }
+  .ibx-chan input[type=checkbox]{ width:auto; }
+  .ibx-chan .hint{ font-size:11.5px; color:var(--faint); }
+  .ibx-sub{ margin:2px 0 2px 27px; }
+  .ibx-sub input{ font-size:13px; padding:9px 12px; }
+  .ibx-sub[hidden]{ display:none; }
+  .ibx-adv > summary{ cursor:pointer; font-size:12px; color:var(--faint); font-weight:600; margin-top:10px; }
 </style>
 
 <div class="opt">
@@ -200,6 +239,141 @@
       {% endif %}
     </div>
   </div>
+
+  {# ------------------------------------------------------- INBOX WATCHER #}
+  {%- macro ping_picker() -%}
+    <label class="opt-fieldlabel sg" style="margin:14px 0 2px">How should JobBot ping you?</label>
+    <div class="ibx-chan">
+      <label class="row">
+        <input type="checkbox" name="ping_channels" value="telegram"
+               {{ 'checked' if 'telegram' in inbox_channels }}>
+        📱 Telegram
+        {% if not user.telegram_chat_id %}<span class="hint">— connect it in Notifications above first</span>{% endif %}
+      </label>
+      <label class="row">
+        <input type="checkbox" name="ping_channels" value="email"
+               {{ 'checked' if 'email' in inbox_channels }}>
+        ✉️ Email <span class="hint">— to {{ user.email }}</span>
+      </label>
+      <label class="row">
+        <input type="checkbox" name="ping_channels" value="ntfy" data-reveal="ntfy-sub"
+               {{ 'checked' if 'ntfy' in inbox_channels }}>
+        🔔 ntfy <span class="hint">— free push-notification app (ntfy.sh)</span>
+      </label>
+      <div class="ibx-sub" id="ntfy-sub" {{ '' if 'ntfy' in inbox_channels else 'hidden' }}>
+        <input type="text" name="ntfy_topic" value="{{ ntfy_topic }}"
+               placeholder="your topic, e.g. jobbot-eddie">
+        <div class="opt-note" style="margin-top:5px">Subscribe to the same topic in the ntfy
+          app and pings show up as phone notifications.</div>
+      </div>
+      <label class="row">
+        <input type="checkbox" name="ping_channels" value="discord" data-reveal="discord-sub"
+               {{ 'checked' if 'discord' in inbox_channels }}>
+        🎮 Discord <span class="hint">— posts into a channel of yours</span>
+      </label>
+      <div class="ibx-sub" id="discord-sub" {{ '' if 'discord' in inbox_channels else 'hidden' }}>
+        <input type="text" name="discord_webhook" value="{{ discord_webhook }}"
+               placeholder="https://discord.com/api/webhooks/…">
+        <div class="opt-note" style="margin-top:5px">In Discord: your server → channel settings →
+          Integrations → Webhooks → New Webhook → Copy URL.</div>
+      </div>
+    </div>
+  {%- endmacro -%}
+  <div class="card" id="inbox">
+    <div class="opt-h sg" style="margin-bottom:6px">Inbox watcher</div>
+
+    <div class="opt-desc">JobBot watches your own inbox for replies to your applications
+      — so you don't have to bookkeep anything.</div>
+    <div class="ibx-points">
+      <div class="ibx-point"><span class="ic">✅</span><span>Applied somewhere? The confirmation
+        email <b>marks that job Applied</b> automatically.</span></div>
+      <div class="ibx-point"><span class="ic">🎉</span><span><b>Interview request or offer?</b>
+        You get pinged right away.</span></div>
+      <div class="ibx-point"><span class="ic">📩</span><span><b>Rejection?</b> You get a ping,
+        so you always know where you stand.</span></div>
+    </div>
+    <div class="ibx-privacy">🔒 Read-only — JobBot can never send, move or delete your mail
+      · only job-related messages are read · your password is stored encrypted
+      · Disconnect erases it instantly.</div>
+
+    {% if inbox_connected %}
+      <div class="opt-row" style="align-items:flex-start">
+        <div>
+          <div class="opt-label sg">{{ inbox_email }}</div>
+          <div class="opt-desc">Connected ✓ — checked automatically about every 30 minutes.
+            {% if inbox_scanned_at %}Last checked {{ inbox_scanned_at.strftime('%b %d, %H:%M') }} UTC.{% endif %}</div>
+        </div>
+        <form method="post" action="/options/inbox/disconnect" style="flex:none;margin:0">
+          <button type="submit" class="btn secondary small">Disconnect</button>
+        </form>
+      </div>
+      <form method="post" action="/options/inbox/channels" style="margin-top:4px">
+        {{ ping_picker() }}
+        <button type="submit" class="btn small" style="margin-top:12px">Save ping settings</button>
+      </form>
+    {% else %}
+      <form method="post" action="/options/inbox/connect">
+        <label class="opt-fieldlabel sg" for="imap_email">Your email address</label>
+        <input id="imap_email" name="imap_email" type="email" placeholder="you@gmail.com" required>
+        <div class="opt-note" style="margin-top:5px">We work out the mail server from your
+          address automatically.</div>
+
+        <label class="opt-fieldlabel sg" for="imap_password" style="margin-top:12px">App password
+          <details class="opt-help">
+            <summary aria-label="What is an app password?">?</summary>
+            <div class="opt-pop">
+              <b>Not your normal password!</b> An app password is a special 16-character
+              code your email provider creates just for JobBot.
+              <ol>
+                <li>Turn on <b>2-Step Verification</b> for your Google account (if it isn't already).</li>
+                <li>Open <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">Google → App passwords</a>.</li>
+                <li>Name it <b>JobBot</b>, tap Create, and copy the 16 letters.</li>
+                <li>Paste them here — done.</li>
+              </ol>
+              Yahoo and iCloud have the same feature under their security settings.
+              Your real password never touches JobBot.
+            </div>
+          </details>
+        </label>
+        <input id="imap_password" name="imap_password" type="password"
+               placeholder="16-character app password" required>
+
+        {{ ping_picker() }}
+
+        <details class="ibx-adv">
+          <summary>Advanced (custom mail server)</summary>
+          <label class="opt-fieldlabel sg" for="imap_host" style="margin-top:10px">Mail server (IMAP)</label>
+          <input id="imap_host" name="imap_host" type="text"
+                 placeholder="leave blank to auto-detect">
+        </details>
+
+        <button type="submit" class="btn" style="margin-top:16px">Connect my inbox</button>
+      </form>
+    {% endif %}
+  </div>
+  <script>
+    // reveal the ntfy/discord address inputs only when that channel is ticked
+    document.querySelectorAll('#inbox input[data-reveal]').forEach(function (cb) {
+      cb.addEventListener('change', function () {
+        var sub = document.getElementById(cb.dataset.reveal);
+        if (sub) sub.hidden = !cb.checked;
+      });
+    });
+    // the "?" popover closes when you click anywhere else or press Escape,
+    // so it never blocks the form underneath it
+    document.addEventListener('click', function (e) {
+      document.querySelectorAll('details.opt-help[open]').forEach(function (d) {
+        if (!d.contains(e.target)) d.removeAttribute('open');
+      });
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') {
+        document.querySelectorAll('details.opt-help[open]').forEach(function (d) {
+          d.removeAttribute('open');
+        });
+      }
+    });
+  </script>
 
   {# --------------------------------------------------------- APPEARANCE #}
   <div class="card">

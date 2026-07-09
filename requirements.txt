@@ -40,3 +40,4 @@ lxml>=5.0                # fast, forgiving HTML parsing for the scrapers
 # --- BUILD_SPEC ATS ingestion: HTML job descriptions -> Markdown ---
 markdownify>=0.11
 fpdf2
+cryptography>=42

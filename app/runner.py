@@ -233,6 +233,19 @@ def run_cycle(
             except Exception as exc:  # noqa: BLE001
                 logger.warning("follow-ups failed: %s", exc)
                 session.rollback()
+            # Inbox watcher: for users who connected their mailbox, spot
+            # application confirmations / rejections / interview invites.
+            try:
+                from app.inbox import run_inbox_scans
+
+                for r in run_inbox_scans(session):
+                    if r.events:
+                        rep.alert_lines.append(
+                            f"inbox {r.email}: " + "; ".join(r.events)
+                        )
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("inbox scans failed: %s", exc)
+                session.rollback()
 
     return rep
 

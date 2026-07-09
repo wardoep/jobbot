@@ -487,6 +487,35 @@ def cmd_run_scheduler(args: argparse.Namespace) -> None:
         print("\nScheduler stopped.")
 
 
+def cmd_scan_inbox(args: argparse.Namespace) -> None:
+    """Scan connected mailboxes now (the scheduler also does this each cycle)."""
+    _enable_logs()
+    from app.db import Session
+    from app.inbox import run_inbox_scans, scan_user_inbox
+    from app.models import User
+
+    with Session() as session:
+        if args.email:
+            user = session.query(User).filter_by(email=args.email).first()
+            if user is None:
+                sys.exit(f"No account with email {args.email}.")
+            reports = [scan_user_inbox(session, user)]
+        else:
+            reports = run_inbox_scans(session)
+
+    if not reports:
+        print("No users have connected an inbox yet (Options → Inbox watcher).")
+        return
+    for r in reports:
+        if r.skipped_reason:
+            print(f"{r.email}: skipped — {r.skipped_reason}")
+            continue
+        print(f"{r.email}: {r.scanned} new message(s), "
+              f"{r.candidates} looked job-related, {len(r.events)} acted on.")
+        for e in r.events:
+            print(f"   - {e}")
+
+
 def cmd_test_email(args: argparse.Namespace) -> None:
     """Send a single test email to confirm your mail settings work."""
     _enable_logs()
@@ -793,6 +822,13 @@ def main() -> None:
     p_test = sub.add_parser("test-email", help="send a test email to check mail setup")
     p_test.add_argument("--to", required=True, help="address to send the test to")
     p_test.set_defaults(func=cmd_test_email)
+
+    p_inbox = sub.add_parser(
+        "scan-inbox",
+        help="scan connected mailboxes now for confirmations/rejections/interviews",
+    )
+    p_inbox.add_argument("--email", help="only scan this user's mailbox")
+    p_inbox.set_defaults(func=cmd_scan_inbox)
 
     # --- Phase 6: tailoring + application Q&A (OpenAI) ---
     p_llm = sub.add_parser("llm-check", help="show the active LLM provider/model")

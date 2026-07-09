@@ -93,7 +93,129 @@ def options_page(
             f"https://t.me/{tg_username}?start={user.telegram_link_token}"
             if tg_ready and user.telegram_link_token else ""
         ),
+        inbox_connected=bool(user.inbox_enabled and user.imap_email),
+        inbox_email=user.imap_email or "",
+        inbox_scanned_at=user.inbox_scanned_at,
+        inbox_channels=(user.inbox_ping_channels
+                        or (["telegram"] if user.telegram_chat_id else ["email"])),
+        ntfy_topic=user.ntfy_topic or "",
+        discord_webhook=user.discord_webhook or "",
     )
+
+
+def _apply_ping_channels(request, user, ping_channels, ntfy_topic, discord_webhook):
+    """Validate + store the inbox watcher's ping channels. Returns an error
+    message (str) or None on success. Channels needing an address only stick
+    when that address is present and sane."""
+    from app.alerts.discord import valid_webhook
+    from app.inbox import PING_CHANNELS
+
+    chans = [c for c in ping_channels if c in PING_CHANNELS]
+    topic = (ntfy_topic or "").strip()[:300]
+    webhook = (discord_webhook or "").strip()[:500]
+
+    if "ntfy" in chans and not topic:
+        return "Pick a topic name for ntfy (any word works, e.g. jobbot-eddie)."
+    if "discord" in chans and not valid_webhook(webhook):
+        return ("That doesn't look like a Discord webhook link — it should start "
+                "with https://discord.com/api/webhooks/…")
+    if "telegram" in chans and not user.telegram_chat_id:
+        return "Connect Telegram (in Notifications above) before picking it here."
+
+    user.inbox_ping_channels = chans or None
+    user.ntfy_topic = topic or None
+    user.discord_webhook = webhook or None
+    return None
+
+
+@router.post("/inbox/connect")
+def inbox_connect(
+    request: Request,
+    imap_email: str = Form(""),
+    imap_password: str = Form(""),
+    imap_host: str = Form(""),
+    ping_channels: list[str] = Form([]),
+    ntfy_topic: str = Form(""),
+    discord_webhook: str = Form(""),
+    user: User = Depends(require_user),
+    db: SessionType = Depends(get_db),
+):
+    """Connect the user's OWN mailbox (read-only IMAP) so JobBot can spot
+    application confirmations, rejections and interview invites. The mail
+    server is worked out from the address when left blank; the login is
+    verified against the mail server BEFORE anything is saved; the password is
+    stored encrypted and can be disconnected (erased) any time."""
+    from app.inbox import guess_imap_host, seal, test_connection
+
+    addr = imap_email.strip()
+    if not addr or not imap_password.strip():
+        add_flash(request, "Enter the mailbox address and its app password.", "error")
+        return RedirectResponse("/options#inbox", status_code=303)
+    host = (imap_host or "").strip()[:120] or guess_imap_host(addr)
+
+    err = _apply_ping_channels(request, user, ping_channels, ntfy_topic, discord_webhook)
+    if err:
+        db.rollback()
+        add_flash(request, err, "error")
+        return RedirectResponse("/options#inbox", status_code=303)
+
+    ok, cerr = test_connection(host, addr, imap_password)
+    if not ok:
+        db.rollback()
+        add_flash(request, f"Couldn't connect: {cerr} Nothing was saved. Gmail "
+                           "needs an app password (the ? next to the field "
+                           "explains how to make one).",
+                  "error")
+        return RedirectResponse("/options#inbox", status_code=303)
+
+    user.imap_host = host
+    user.imap_email = addr[:320]
+    user.imap_password = seal(imap_password)
+    user.inbox_enabled = True
+    user.inbox_last_uid = None       # first scan looks back a few days
+    db.commit()
+    add_flash(request, "Inbox connected — JobBot now spots application "
+                       "confirmations, rejections and interview invites for you.",
+              "success")
+    return RedirectResponse("/options#inbox", status_code=303)
+
+
+@router.post("/inbox/channels")
+def inbox_channels(
+    request: Request,
+    ping_channels: list[str] = Form([]),
+    ntfy_topic: str = Form(""),
+    discord_webhook: str = Form(""),
+    user: User = Depends(require_user),
+    db: SessionType = Depends(get_db),
+):
+    """Change how the inbox watcher pings an already-connected user."""
+    err = _apply_ping_channels(request, user, ping_channels, ntfy_topic, discord_webhook)
+    if err:
+        db.rollback()
+        add_flash(request, err, "error")
+    else:
+        db.commit()
+        add_flash(request, "Saved — that's how JobBot will ping you.", "success")
+    return RedirectResponse("/options#inbox", status_code=303)
+
+
+@router.post("/inbox/disconnect")
+def inbox_disconnect(
+    request: Request,
+    user: User = Depends(require_user),
+    db: SessionType = Depends(get_db),
+):
+    """Turn the inbox watcher off and erase the stored credentials."""
+    user.imap_host = None
+    user.imap_email = None
+    user.imap_password = None
+    user.inbox_enabled = False
+    user.inbox_last_uid = None
+    db.commit()
+    add_flash(request, "Inbox disconnected — the saved credentials were erased.",
+              "success")
+    return RedirectResponse("/options#inbox", status_code=303)
 
 
 @router.post("/notifications")
