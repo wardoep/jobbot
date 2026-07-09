@@ -1,56 +1,36 @@
 {% extends "base.html" %}
 {% block title %}Resume builder · JobBot{% endblock %}
-{% block main_class %} hm-page bld-lock{% endblock %}
+{% block main_class %} hm-page bld-canvas{% endblock %}
 {% block body %}
 <style>
-  /* ------- layout: adaptive by window width --------------------------------
-     <1200px      the three sections stack full-width; the page scrolls.
-     1200-1479px  TWO columns: one real rail (controls, results below it) and
-                  the resume beside it at full size — two-page spread when it
-                  has >=560px of room; the page scrolls, run button sticky.
-     >=1480px     THREE columns (controls 300 / resume / results 310), page
-                  locked to the viewport with the spread scaled to the fold.
-     In every band the resume is NEVER wider than its own column, so it can't
-     crowd the panels beside it. */
-  .builder-cols { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 18px; }
-  .builder-left { width: 270px; flex: none; }
-  .builder-paperrail { flex: 1 1 100%; min-width: 0; }   /* the resume */
-  .builder-mid { width: 290px; flex: none; }             /* the results */
-  @media (max-width: 1199px) { .builder-left, .builder-mid { width: 100%; } }
+  /* ------- layout ----------------------------------------------------------
+     Controls on the left; your resume on the right as ONE readable page you
+     just scroll down — no zoom, no inner scrollbars, no two-page spread. The
+     window scrolls normally. Below 1180px everything stacks full-width. */
+  /* use more of the screen than the standard 1248 canvas so the resume can be
+     wide and the controls roomy, with tighter side margins */
+  .jb-main.bld-canvas { max-width: 1400px; }
+  .builder-cols { display: flex; flex-direction: column; gap: 20px; margin-top: 20px; }
+  .builder-left, .builder-mid { width: 100%; min-width: 0; }
+  .builder-paperrail {
+    width: 100%; min-width: 0;
+    display: flex; flex-direction: column; align-items: center;
+  }
 
-  /* ---- shared by both desktop bands ---- */
-  @media (min-width: 1200px) {
-    .jb-main.bld-lock { max-width: 1720px; }
-    .jb-main.bld-lock .bld-backp { display: none; }  /* sidebar nav covers it */
-    .bld-runwrap {
-      position: sticky; bottom: 0; margin-top: 6px; padding: 12px 0 2px;
-      background: linear-gradient(180deg, transparent, var(--bg) 30%);
+  @media (min-width: 1180px) {
+    .builder-cols {
+      display: grid; gap: 24px 40px; align-items: start;
+      grid-template-columns: minmax(300px, 344px) minmax(0, 1fr);
+      grid-template-areas: "left  paper"
+                           "mid   paper";
     }
-    /* two-page-spread flow inside the paper — ONLY when the JS measured enough
-       rail width and set .spread; a narrow rail stays single-column at full
-       size and scrolls instead. Big boxed sections are allowed to continue
-       across the column break (side borders carry through) — forcing them
-       whole would leave one column towering over the other. */
-    .builder-paperrail.spread .pflow { columns: 2; column-gap: 26px; }
-    .pent { break-inside: avoid; }                /* a job entry never splits */
-    .phead, .bld-sech { break-after: avoid; }     /* headings stick to content */
-    .bld-addbox, .bld-docmark { break-inside: avoid; }
-    #paper-pane > div { padding: 20px 22px !important; }  /* tighter paper edges */
-    /* compact print for the before-view so a full spread fits at readable size
-       (prefixed selectors so they beat the base .bld-* rules further down);
-       single-column mode keeps the base sizes — it scrolls, so no squeezing */
-    .builder-paperrail.spread .bld-paper { font-size: 11px; line-height: 1.45; }
-    .builder-paperrail.spread .bld-sec + .bld-sec { margin-top: 9px; }
-    .builder-paperrail.spread .bld-sec.boxed { padding: 12px 10px 8px; margin: 14px -4px 6px; }
-    .builder-paperrail.spread .bld-sech { font-size: 10px; margin-bottom: 3px; }
-    .builder-paperrail.spread .bld-docmark { padding: 6px 9px; margin-bottom: 10px; font-size: 11px; }
-    .builder-paperrail.spread .bld-addbox { padding: 9px 10px 8px; margin-top: 12px; font-size: 11px; }
-    .builder-paperrail.spread .bld-boxtag { font-size: 9.5px; padding: 2px 8px; }
-    /* narrow side rails: chip + points side-by-side with the text mashed the
-       fix titles into a sliver — give the text its own full-width line */
+    .builder-left { grid-area: left; }
+    .builder-mid  { grid-area: mid; }
+    .builder-paperrail { grid-area: paper; }
+    /* the left rail is narrow, so keep the fix rows from mashing: the chip and
+       its points share the first line, the fix text gets its own line below */
     .bld-fix { flex-wrap: wrap; align-items: center; row-gap: 5px; }
-    .bld-fix input { margin-top: 0; }
-    .bld-fix .rs-chip { margin-top: 0; }
+    .bld-fix input, .bld-fix .rs-chip { margin-top: 0; }
     .bld-fix .bld-fix-pts { margin-left: auto; margin-top: 0; }
     .bld-fix .bld-fix-body { flex: 1 1 100%; order: 5; }
     .builder-mid .rs-row { flex-wrap: wrap; row-gap: 5px; }
@@ -58,44 +38,14 @@
     .builder-mid .rs-row .rs-chip ~ .rs-body { flex: 1 1 100%; order: 5; }
   }
 
-  /* ---- 1200-1479px: two columns, page scrolls normally ---- */
-  @media (min-width: 1200px) and (max-width: 1479px) {
-    .builder-cols {
-      display: grid; gap: 16px 22px; align-items: start;
-      grid-template-columns: minmax(280px, 330px) minmax(0, 1fr);
-      grid-template-areas: "left paper" "mid paper";
-    }
-    .builder-left { grid-area: left; width: auto; }
-    .builder-mid { grid-area: mid; width: auto; }
-    .builder-paperrail { grid-area: paper; display: flex; flex-direction: column; align-items: center; }
-  }
+  .bld-runwrap { margin-top: 20px; }
 
-  /* ---- >=1480px: three columns, viewport-locked (no page scroll) ---- */
-  @media (min-width: 1480px) {
-    .jb-main.bld-lock { padding-bottom: 12px; }
-    /* compact header: the workspace explains itself — every pixel goes to the paper */
-    .jb-main.bld-lock > .eyebrow { display: none; }
-    .jb-main.bld-lock h1 { font-size: 24px; margin: 0 0 6px; }
-    .jb-main.bld-lock > .sub { display: none; }
-    .builder-cols { flex-wrap: nowrap; margin-top: 14px; }  /* JS sets the locked height */
-    .builder-left { width: 300px; }
-    .builder-mid { width: 310px; }
-    .builder-paperrail { flex: 1; }
-    .builder-left, .builder-mid {
-      overflow-y: auto; height: 100%; padding-right: 3px;
-      scrollbar-width: thin;
-    }
-    .builder-paperrail {
-      height: 100%; overflow: hidden;
-      display: flex; flex-direction: column; align-items: center;
-    }
-  }
-  #paper-fit { overflow: hidden; border-radius: 10px; scrollbar-width: thin; }
-  #paper-zoom { transform-origin: top left; }
-  @media (max-width: 1199px) {
-    #paper-fit { width: auto !important; height: auto !important; overflow: visible; }
-    #paper-zoom { width: auto !important; transform: none !important; margin: 0 !important; }
-  }
+  /* The resume is a single page you scroll — wide enough to fill most of its
+     side of the workspace, centered so its side margins stay even. The old
+     spread machinery is retired: sections just flow in one column. */
+  #paper-rail { width: 100%; max-width: 840px; }
+  #paper-fit  { width: 100%; border-radius: 12px; }
+  #paper-zoom { width: 100%; }
 
   /* ------- step headers ------- */
   .bld-step {
@@ -167,22 +117,22 @@
     box-shadow: 0 14px 30px -18px rgba(99,102,241,.5);
   }
   .tpl-card:has(input:checked) .tpl-name { color: var(--blue); }
-  /* the thumb is a real miniature resume, always "paper" white like the preview */
+  /* mini-resume swatches — dark now too, so they preview the real (dark) paper */
   .tpl-thumb {
-    height: 132px; background: #fff; border: 1px solid #eef2f8; border-radius: 8px;
+    height: 132px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
     padding: 10px 11px; overflow: hidden; display: flex; flex-direction: column;
-    color: #0f1730; font-family: -apple-system, system-ui, sans-serif;
+    color: var(--text); font-family: -apple-system, system-ui, sans-serif;
   }
   .tp-bar { height: 3px; width: 24px; border-radius: 2px; margin-bottom: 5px; flex: none; }
   .tp-name { font-size: 10.5px; font-weight: 700; letter-spacing: -.01em; line-height: 1.2; }
   .tp-role { font-size: 6.5px; font-weight: 600; margin-top: 1px; }
-  .tp-meta { font-size: 5.5px; color: #94a3b8; margin-top: 2px; }
+  .tp-meta { font-size: 5.5px; color: var(--faint); margin-top: 2px; }
   .tp-h {
     font-size: 5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
     margin: 7px 0 3px; flex: none;
   }
-  .tp-rule { border-bottom: 1px solid #e6ecf6; padding-bottom: 2px; }
-  .tp-line { display: block; height: 3px; border-radius: 2px; background: #eef2f8; margin-top: 3px; flex: none; }
+  .tp-rule { border-bottom: 1px solid var(--border); padding-bottom: 2px; }
+  .tp-line { display: block; height: 3px; border-radius: 2px; background: var(--track); margin-top: 3px; flex: none; }
   .tp-center { align-items: center; text-align: center; }
   .tp-center .tp-line { width: 100%; }
   .tp-cols { flex-direction: row; gap: 6px; padding: 8px; }
@@ -240,51 +190,52 @@
   }
 
   /* ------- before view: "your resume today" with problem boxes ------- */
-  /* the paper is always white like the preview, so these use fixed inks */
+  /* dark "document" that matches the app (theme tokens, so it also stays
+     right if the app is switched to light) — no longer a white sheet */
   .bld-paper {
-    background: #fff; color: #334155; border: 1px solid #eef2f8; border-radius: 10px;
-    padding: 22px 20px; box-shadow: 0 18px 44px -26px rgba(15,23,48,.45);
-    font-size: 12px; line-height: 1.55;
+    background: var(--surface); color: var(--text-2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 26px 26px; box-shadow: 0 20px 46px -30px rgba(0,0,0,.6);
+    font-size: 12.5px; line-height: 1.55;
   }
   .bld-sec { position: relative; border-radius: 8px; }
   .bld-sec + .bld-sec { margin-top: 12px; }
   .bld-sec.boxed { border: 1.5px solid; padding: 16px 12px 10px; margin: 18px -4px 8px; }
-  .bld-sec.boxed.fix { border-color: rgba(220,38,38,.5); background: rgba(220,38,38,.045); }
-  .bld-sec.boxed.improve { border-color: rgba(217,119,6,.5); background: rgba(217,119,6,.05); }
+  .bld-sec.boxed.fix { border-color: var(--red-bd); background: var(--red-bg); }
+  .bld-sec.boxed.improve { border-color: var(--amber-bd); background: var(--amber-bg); }
   .bld-tags { position: absolute; top: -11px; right: 10px; display: flex; gap: 6px; }
   .bld-boxtag {
-    display: inline-flex; align-items: center; background: #fff; border: 1px solid;
+    display: inline-flex; align-items: center; background: var(--surface); border: 1px solid;
     border-radius: 999px; padding: 2px 9px; white-space: nowrap;
     font-family: var(--font-display); font-size: 10.5px; font-weight: 800; letter-spacing: .02em;
   }
-  .bld-boxtag.fix { color: #dc2626; border-color: rgba(220,38,38,.55); }
-  .bld-boxtag.improve { color: #d97706; border-color: rgba(217,119,6,.55); }
+  .bld-boxtag.fix { color: var(--red); border-color: var(--red-bd); }
+  .bld-boxtag.improve { color: var(--amber); border-color: var(--amber-bd); }
   .bld-sech {
     font-weight: 700; font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
-    color: #0f1730; margin-bottom: 4px;
+    color: var(--text); margin-bottom: 4px;
   }
   .bld-sect { white-space: pre-wrap; overflow-wrap: anywhere; }
-  .bld-mark { border-radius: 3px; padding: 0 2px; color: inherit; }
-  .bld-mark.fix { background: rgba(220,38,38,.13); box-shadow: inset 0 -2px rgba(220,38,38,.5); }
-  .bld-mark.improve { background: rgba(217,119,6,.15); box-shadow: inset 0 -2px rgba(217,119,6,.55); }
+  .bld-mark { border-radius: 3px; padding: 0 2px; color: var(--text); }
+  .bld-mark.fix { background: var(--red-bg); box-shadow: inset 0 -2px var(--red); }
+  .bld-mark.improve { background: var(--amber-bg); box-shadow: inset 0 -2px var(--amber); }
   .bld-mark sup { font-size: 9px; font-weight: 800; margin-left: 2px; }
-  .bld-mark.fix sup { color: #dc2626; }
-  .bld-mark.improve sup { color: #d97706; }
+  .bld-mark.fix sup { color: var(--red); }
+  .bld-mark.improve sup { color: var(--amber); }
   .bld-docmark {
     display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
     border: 1.5px dashed; border-radius: 8px; padding: 8px 10px; margin-bottom: 14px;
     font-size: 12px; font-weight: 600;
   }
-  .bld-docmark.fix { border-color: rgba(220,38,38,.5); background: rgba(220,38,38,.045); color: #991b1b; }
-  .bld-docmark.improve { border-color: rgba(217,119,6,.5); background: rgba(217,119,6,.05); color: #92400e; }
+  .bld-docmark.fix { border-color: var(--red-bd); background: var(--red-bg); color: var(--red); }
+  .bld-docmark.improve { border-color: var(--amber-bd); background: var(--amber-bg); color: var(--amber); }
   .bld-addbox {
     position: relative; border: 1.5px dashed; border-radius: 8px;
     padding: 12px 12px 10px; margin-top: 18px; font-size: 12px;
   }
-  .bld-addbox.fix { border-color: rgba(220,38,38,.5); background: rgba(220,38,38,.045); }
-  .bld-addbox.improve { border-color: rgba(217,119,6,.5); background: rgba(217,119,6,.05); }
-  .bld-addbox b { display: block; font-size: 12.5px; color: #0f1730; }
-  .bld-addbox span { color: #64748b; }
+  .bld-addbox.fix { border-color: var(--red-bd); background: var(--red-bg); }
+  .bld-addbox.improve { border-color: var(--amber-bd); background: var(--amber-bg); }
+  .bld-addbox b { display: block; font-size: 12.5px; color: var(--text); }
+  .bld-addbox span { color: var(--faint); }
   .bld-addbox .bld-boxtag { position: absolute; top: -11px; right: 10px; }
 
   /* ------- result: save bar + placeholder ------- */
@@ -358,36 +309,36 @@
                    {% if t.key == selected %}checked{% endif %}>
             {% if t.key == 'modern' %}
               <div class="tpl-thumb">
-                <i class="tp-bar" style="background:#2563eb"></i>
+                <i class="tp-bar" style="background:var(--blue)"></i>
                 <b class="tp-name">Alex Rivera</b>
-                <span class="tp-role" style="color:#2563eb">Senior Product Manager</span>
+                <span class="tp-role" style="color:var(--blue)">Senior Product Manager</span>
                 <span class="tp-meta">Hartford, CT · alex@rivera.dev · (860) 555-0102</span>
-                <span class="tp-h" style="color:#2563eb">Summary</span>
+                <span class="tp-h" style="color:var(--blue)">Summary</span>
                 <i class="tp-line" style="width:96%"></i><i class="tp-line" style="width:84%"></i>
-                <span class="tp-h" style="color:#2563eb">Experience</span>
+                <span class="tp-h" style="color:var(--blue)">Experience</span>
                 <i class="tp-line" style="width:92%"></i><i class="tp-line" style="width:70%"></i>
               </div>
             {% elif t.key == 'classic' %}
               <div class="tpl-thumb tp-center" style="font-family:Georgia,'Times New Roman',serif">
                 <b class="tp-name">Alex Rivera</b>
                 <span class="tp-meta">Hartford, CT · alex@rivera.dev · (860) 555-0102</span>
-                <span class="tp-h tp-rule" style="color:#0f1730;width:100%">Experience</span>
+                <span class="tp-h tp-rule" style="color:var(--text);width:100%">Experience</span>
                 <i class="tp-line" style="width:94%"></i><i class="tp-line" style="width:86%"></i><i class="tp-line" style="width:90%"></i>
-                <span class="tp-h tp-rule" style="color:#0f1730;width:100%">Education</span>
+                <span class="tp-h tp-rule" style="color:var(--text);width:100%">Education</span>
                 <i class="tp-line" style="width:68%"></i>
               </div>
             {% elif t.key == 'twocol' %}
               <div class="tpl-thumb tp-cols">
-                <div class="tp-side" style="background:#ecfdf8">
-                  <span class="tp-h" style="color:#0d9488;margin-top:0">Contact</span>
-                  <i class="tp-line" style="width:90%;background:#d5f0e9"></i><i class="tp-line" style="width:72%;background:#d5f0e9"></i>
-                  <span class="tp-h" style="color:#0d9488">Skills</span>
-                  <i class="tp-line" style="width:82%;background:#d5f0e9"></i><i class="tp-line" style="width:68%;background:#d5f0e9"></i><i class="tp-line" style="width:76%;background:#d5f0e9"></i>
+                <div class="tp-side" style="background:var(--inset)">
+                  <span class="tp-h" style="color:#14b8a6;margin-top:0">Contact</span>
+                  <i class="tp-line" style="width:90%;background:var(--track)"></i><i class="tp-line" style="width:72%;background:var(--track)"></i>
+                  <span class="tp-h" style="color:#14b8a6">Skills</span>
+                  <i class="tp-line" style="width:82%;background:var(--track)"></i><i class="tp-line" style="width:68%;background:var(--track)"></i><i class="tp-line" style="width:76%;background:var(--track)"></i>
                 </div>
                 <div class="tp-mainc">
                   <b class="tp-name" style="font-size:9.5px">Alex Rivera</b>
-                  <span class="tp-role" style="color:#0d9488">Senior Product Manager</span>
-                  <span class="tp-h" style="color:#0d9488">Experience</span>
+                  <span class="tp-role" style="color:#14b8a6">Senior Product Manager</span>
+                  <span class="tp-h" style="color:#14b8a6">Experience</span>
                   <i class="tp-line" style="width:94%"></i><i class="tp-line" style="width:82%"></i><i class="tp-line" style="width:88%"></i>
                 </div>
               </div>
@@ -395,9 +346,9 @@
               <div class="tpl-thumb">
                 <b class="tp-name">Alex Rivera</b>
                 <span class="tp-meta" style="margin-top:2px">Product Manager · Hartford, CT</span>
-                <span class="tp-h" style="color:#475569;margin-top:13px">Experience</span>
+                <span class="tp-h" style="color:var(--muted);margin-top:13px">Experience</span>
                 <i class="tp-line" style="width:88%"></i><i class="tp-line" style="width:72%"></i>
-                <span class="tp-h" style="color:#475569">Skills</span>
+                <span class="tp-h" style="color:var(--muted)">Skills</span>
                 <i class="tp-line" style="width:58%"></i>
               </div>
             {% endif %}
@@ -524,85 +475,17 @@
       });
     });
 
-    // ---- adaptive layout, three bands (must match the CSS breakpoints):
-    // stacked (<1200) · two-column, page scrolls (1200-1479) · three-column
-    // viewport-locked with the spread scaled to the fold (>=1480). In every
-    // band the paper is sized to its own column, never wider. ----
-    var DESKTOP = function () { return window.innerWidth >= 1200; };
-    var LOCKED = function () { return window.innerWidth >= 1480; };
-    function layoutBuilder() {
-      var cols = document.getElementById('builder-form');
-      if (!cols) return;
-      if (LOCKED()) {
-        // rect.top + scrollY = distance from the document top, so the lock
-        // height is right even if the page was scrolled when we crossed 1480px
-        var top = cols.getBoundingClientRect().top + window.scrollY;
-        var h = window.innerHeight - top - 14;
-        cols.style.height = Math.max(430, h) + 'px';
-      } else {
-        cols.style.height = '';
-      }
+    // Layout is pure CSS now — a single centered resume page, the window
+    // scrolls. This just strips any inline sizing an earlier build's scaling
+    // code may have left on a cached fragment so it can't stretch the paper.
+    function resetPaperInline() {
+      ['paper-fit', 'paper-zoom'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.removeAttribute('style');
+      });
     }
-    function fitPaper() {
-      var fit = document.getElementById('paper-fit');
-      var zoom = document.getElementById('paper-zoom');
-      var railWrap = document.getElementById('paper-rail');
-      var railBox = document.querySelector('.builder-paperrail');
-      if (!railBox) return;
-      if (!DESKTOP()) {
-        railBox.classList.remove('spread');
-        if (fit) { fit.style.width = fit.style.height = ''; fit.style.overflowY = ''; }
-        if (zoom) { zoom.style.width = ''; zoom.style.transform = ''; zoom.style.marginBottom = ''; }
-        if (railWrap) railWrap.style.width = '';
-        return;
-      }
-      // a two-column spread needs real width to stay readable; under 560px the
-      // paper flows as one full-size column instead (class drives the CSS)
-      var railW = railBox.clientWidth;
-      var spread = railW >= 560;
-      railBox.classList.toggle('spread', spread);
-      if (!fit || !zoom) return;
-      var paperW = Math.min(spread ? 880 : 680, railW);
-      zoom.style.width = paperW + 'px';
-      zoom.style.transform = 'none';
-      zoom.style.marginBottom = '';
-      if (!LOCKED()) {
-        // two-column band: the paper renders at natural size and the PAGE
-        // scrolls — no scaling, no inner pane scrolling
-        fit.style.width = paperW + 'px';
-        fit.style.height = '';
-        fit.style.overflowY = '';
-        if (railWrap) railWrap.style.width = fit.style.width;
-        return;
-      }
-      var availH = Math.max(320, window.innerHeight - fit.getBoundingClientRect().top - 18);
-      var natural = zoom.offsetHeight;
-      if (!natural) return;
-      var scale = 1;
-      if (spread) {  // only the spread shrinks-to-fit; a single column just scrolls
-        scale = Math.min(1, availH / natural);
-        if (scale < 0.75) scale = 0.75;  // readability floor; below it, scroll inside
-      }
-      var shownH = Math.ceil(natural * scale);
-      if (scale < 1) {
-        zoom.style.transform = 'scale(' + scale + ')';
-        zoom.style.marginBottom = (shownH - natural) + 'px';  // fix scroll extent
-      }
-      fit.style.width = Math.ceil(paperW * scale) + 'px';
-      fit.style.height = Math.min(shownH, availH) + 'px';
-      fit.style.overflowY = shownH > availH + 2 ? 'auto' : 'hidden';
-      // pin the header/hint block to the paper's width so text wraps with it
-      if (railWrap) railWrap.style.width = fit.style.width;
-    }
-    function layoutAll() { layoutBuilder(); fitPaper(); }
-    window.addEventListener('resize', layoutAll);
-    // re-fit AFTER htmx settles — settling re-applies swapped-in attributes,
-    // which would wipe a transform set any earlier than this
-    document.body.addEventListener('htmx:afterSettle', function () {
-      layoutAll(); setTimeout(layoutAll, 120);
-    });
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(layoutAll);
-    layoutAll();
+    document.body.addEventListener('htmx:afterSettle', resetPaperInline);
+    resetPaperInline();
   </script>
 {% endif %}
 {% endblock %}

@@ -1,29 +1,33 @@
 {% if error %}
   <div class="flash error" style="position:static;transform:none;margin:0">{{ error }}</div>
 {% else %}
-{#- Per-template look (accent + font + layout), mirroring the design-spec tkMap. -#}
+{#- Per-template look (font + layout). Colours come from the app's theme tokens
+    so the paper is a DARK document that matches the rest of the builder (and
+    still reads correctly if the app is switched to light). Each template keeps
+    a distinct accent. This partial is used ONLY by the resume builder. -#}
 {% set tkmap = {
-  "modern":  {"accent": "#2563eb", "font": "-apple-system,system-ui,sans-serif",   "align": "left",   "bar": true,  "twocol": false, "rail": "#eef4ff"},
-  "classic": {"accent": "#0f1730", "font": "Georgia,'Times New Roman',serif",       "align": "center", "bar": false, "twocol": false, "rail": "#f3f4f6"},
-  "twocol":  {"accent": "#0d9488", "font": "-apple-system,system-ui,sans-serif",   "align": "left",   "bar": false, "twocol": true,  "rail": "#ecfdf8"},
-  "minimal": {"accent": "#475569", "font": "-apple-system,system-ui,sans-serif",   "align": "left",   "bar": false, "twocol": false, "rail": "#f8fafc"}
+  "modern":  {"font": "-apple-system,system-ui,sans-serif", "align": "left",   "bar": true,  "twocol": false},
+  "classic": {"font": "Georgia,'Times New Roman',serif",     "align": "center", "bar": false, "twocol": false},
+  "twocol":  {"font": "-apple-system,system-ui,sans-serif", "align": "left",   "bar": false, "twocol": true },
+  "minimal": {"font": "-apple-system,system-ui,sans-serif", "align": "left",   "bar": false, "twocol": false}
 } %}
 {% set tk = tkmap.get(tpl, tkmap["modern"]) %}
+{% set accents = {"modern": "var(--blue)", "classic": "var(--text)", "twocol": "#14b8a6", "minimal": "var(--muted)"} %}
+{% set accent = accents.get(tpl, "var(--blue)") %}
 {% set paper = paper or {} %}
 {% set sections = paper.sections or [] %}
 
-{#- The p* classes (phead/pent/psec/pflow) are styled ONLY on the resume-builder
-    page, where the paper flows into two columns to fit on screen whole; on the
-    kit/job pages they're inert and this renders single-column as before. -#}
-{%- macro section_block(sec, tk) -%}
-  <div class="phead" style="font-weight:700;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:{{ tk.accent }};border-bottom:1px solid #e6ecf6;padding-bottom:5px;margin:18px 0 9px">{{ sec.heading }}</div>
+{#- The p* classes (phead/pent/psec/pflow) are inert now — the paper always
+    flows as one column and the window scrolls. -#}
+{%- macro section_block(sec, accent) -%}
+  <div class="phead" style="font-weight:700;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:{{ accent }};border-bottom:1px solid var(--border);padding-bottom:5px;margin:18px 0 9px">{{ sec.heading }}</div>
   {% set is_skills = sec.heading and ('skill' in sec.heading|lower) %}
   {% if is_skills %}
     {#- skills read as a plain bulleted list (ATS/recruiter-standard), flowing
         into 2-3 columns where the column is wide enough, 1 in a sidebar -#}
     <div style="column-width:150px;column-gap:22px">
       {% for e in sec.entries %}{% for b in e.bullets %}
-      <div style="font-size:12px;color:#475569;line-height:1.55;padding-left:13px;position:relative;margin-bottom:2px;break-inside:avoid"><span style="position:absolute;left:0">•</span>{{ b }}</div>
+      <div style="font-size:12px;color:var(--text-2);line-height:1.55;padding-left:13px;position:relative;margin-bottom:2px;break-inside:avoid"><span style="position:absolute;left:0">•</span>{{ b }}</div>
       {% endfor %}{% endfor %}
     </div>
   {% else %}
@@ -31,57 +35,57 @@
       <div class="pent" style="margin-bottom:11px">
         {% if e.role or e.org or e.dates %}
         <div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline">
-          <span style="font-weight:700;font-size:13px;color:#0f1730">{{ e.role }}{% if e.role and e.org %} · {% endif %}{{ e.org }}</span>
-          {% if e.dates %}<span style="font-size:11.5px;color:#94a3b8;white-space:nowrap;flex:none">{{ e.dates }}</span>{% endif %}
+          <span style="font-weight:700;font-size:13px;color:var(--text)">{{ e.role }}{% if e.role and e.org %} · {% endif %}{{ e.org }}</span>
+          {% if e.dates %}<span style="font-size:11.5px;color:var(--faint);white-space:nowrap;flex:none">{{ e.dates }}</span>{% endif %}
         </div>
         {% endif %}
         {% for b in e.bullets %}
-        <div style="font-size:12px;color:#475569;line-height:1.5;padding-left:13px;position:relative;margin-bottom:2px"><span style="position:absolute;left:0">•</span>{{ b }}</div>
+        <div style="font-size:12px;color:var(--text-2);line-height:1.5;padding-left:13px;position:relative;margin-bottom:2px"><span style="position:absolute;left:0">•</span>{{ b }}</div>
         {% endfor %}
       </div>
     {% endfor %}
   {% endif %}
 {%- endmacro -%}
 
-{%- macro summary_block(text, tk) -%}
-  <div class="phead" style="font-weight:700;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:{{ tk.accent }};border-bottom:1px solid #e6ecf6;padding-bottom:5px;margin:18px 0 9px">Summary</div>
-  <div style="font-size:12.5px;line-height:1.55;color:#334155">{{ text }}</div>
+{%- macro summary_block(text, accent) -%}
+  <div class="phead" style="font-weight:700;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:{{ accent }};border-bottom:1px solid var(--border);padding-bottom:5px;margin:18px 0 9px">Summary</div>
+  <div style="font-size:12.5px;line-height:1.55;color:var(--text-2)">{{ text }}</div>
 {%- endmacro -%}
 
-<div style="background:#fff;color:#111;border-radius:10px;padding:30px;box-shadow:0 18px 44px -26px rgba(15,23,48,.45);border:1px solid #eef2f8;font-family:{{ tk.font }}">
-  {% if tk.bar %}<div style="height:6px;width:80px;border-radius:4px;background:{{ tk.accent }};margin-bottom:16px"></div>{% endif %}
+<div style="background:var(--surface);color:var(--text-2);border-radius:12px;padding:30px;box-shadow:0 20px 46px -30px rgba(0,0,0,.6);border:1px solid var(--border);font-family:{{ tk.font }}">
+  {% if tk.bar %}<div style="height:6px;width:80px;border-radius:4px;background:{{ accent }};margin-bottom:16px"></div>{% endif %}
 
-  {% if paper.name %}<div style="font-weight:700;font-size:24px;letter-spacing:-.02em;color:#0f1730;text-align:{{ tk.align }}">{{ paper.name }}</div>{% endif %}
-  {% if paper.headline %}<div style="font-size:13px;font-weight:600;color:{{ tk.accent }};text-align:{{ tk.align }};margin-top:2px">{{ paper.headline }}</div>{% endif %}
+  {% if paper.name %}<div style="font-weight:700;font-size:24px;letter-spacing:-.02em;color:var(--text);text-align:{{ tk.align }}">{{ paper.name }}</div>{% endif %}
+  {% if paper.headline %}<div style="font-size:13px;font-weight:600;color:{{ accent }};text-align:{{ tk.align }};margin-top:2px">{{ paper.headline }}</div>{% endif %}
 
   {% if tk.twocol %}
     <div style="display:flex;gap:18px;margin-top:14px;align-items:flex-start">
-      <div style="background:{{ tk.rail }};border-radius:8px;padding:16px;width:36%;flex:none">
+      <div style="background:var(--inset);border-radius:8px;padding:16px;width:36%;flex:none">
         {% if paper.contact %}
-          <div style="font-weight:700;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:{{ tk.accent }};border-bottom:1px solid #e6ecf6;padding-bottom:5px;margin:0 0 9px">Contact</div>
-          <div style="font-size:11px;color:#475569;line-height:1.6;word-break:break-word">{{ paper.contact }}</div>
+          <div style="font-weight:700;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:{{ accent }};border-bottom:1px solid var(--border);padding-bottom:5px;margin:0 0 9px">Contact</div>
+          <div style="font-size:11px;color:var(--text-2);line-height:1.6;word-break:break-word">{{ paper.contact }}</div>
         {% endif %}
         {% for sec in sections if sec.heading and 'skill' in sec.heading|lower %}
-          {{ section_block(sec, tk) }}
+          {{ section_block(sec, accent) }}
         {% endfor %}
       </div>
       <div style="flex:1;min-width:0">
-        {% if paper.summary %}{{ summary_block(paper.summary, tk) }}{% endif %}
+        {% if paper.summary %}{{ summary_block(paper.summary, accent) }}{% endif %}
         {% for sec in sections if not (sec.heading and 'skill' in sec.heading|lower) %}
-          {{ section_block(sec, tk) }}
+          {{ section_block(sec, accent) }}
         {% endfor %}
       </div>
     </div>
   {% else %}
-    {% if paper.contact %}<div style="font-size:11px;color:#64748b;text-align:{{ tk.align }};margin-top:5px">{{ paper.contact }}</div>{% endif %}
+    {% if paper.contact %}<div style="font-size:11px;color:var(--muted);text-align:{{ tk.align }};margin-top:5px">{{ paper.contact }}</div>{% endif %}
     <div class="pflow">
-      {% if paper.summary %}<div class="psec">{{ summary_block(paper.summary, tk) }}</div>{% endif %}
-      {% for sec in sections %}<div class="psec">{{ section_block(sec, tk) }}</div>{% endfor %}
+      {% if paper.summary %}<div class="psec">{{ summary_block(paper.summary, accent) }}</div>{% endif %}
+      {% for sec in sections %}<div class="psec">{{ section_block(sec, accent) }}</div>{% endfor %}
     </div>
   {% endif %}
 
   {% if not paper.name and not paper.summary and not sections %}
-    <div style="font-size:13px;color:#64748b">We couldn't read structured content from your resume. Try a clearer text-based file.</div>
+    <div style="font-size:13px;color:var(--muted)">We couldn't read structured content from your resume. Try a clearer text-based file.</div>
   {% endif %}
 </div>
 
