@@ -728,21 +728,25 @@ def builder_set_look(
 def builder_download(
     paper_json: str = Form(""),
     fmt: str = Form("pdf"),          # "pdf" | "docx"
+    template: str = Form("modern"),  # the look currently previewed
     user: User = Depends(require_user),
 ):
     """Download the resume that's currently previewed (the round-tripped paper)
-    as a clean PDF or Word file — reuses the same ATS-safe builders as the
-    application kit, so it never re-spends an AI call."""
+    as a clean PDF or Word file, styled in the chosen look — reuses the same
+    ATS-safe builders as the application kit, so it never re-spends an AI call."""
     if not is_premium(user):
         return HTMLResponse(PREMIUM_MSG, status_code=403)
     fmt = fmt if fmt in ("pdf", "docx") else "pdf"
+    if template not in _BUILDER_KEYS:
+        template = "modern"
     paper = _paper_from_json(paper_json)
     if paper is None:
         return HTMLResponse("Nothing to download yet — pick a look first.",
                             status_code=400)
     from app.web.kit import _MEDIA, _resume_docx, _resume_pdf
 
-    blob = _resume_pdf(paper) if fmt == "pdf" else _resume_docx(paper)
+    blob = (_resume_pdf(paper, look=template) if fmt == "pdf"
+            else _resume_docx(paper, look=template))
     base = f"{paper.get('name') or 'resume'} - resume"
     safe = re.sub(r"[^A-Za-z0-9 ._-]+", "", base).strip() or "resume"
     return Response(
