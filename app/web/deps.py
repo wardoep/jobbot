@@ -108,6 +108,40 @@ def is_premium(user: Optional[User]) -> bool:
     return until > datetime.now(timezone.utc)
 
 
+# --- themes -----------------------------------------------------------------
+# The one list every theme surface reads (the /themes page, the /theme route,
+# render()'s cookie sanitizing). dark/light are free; the rest are Premium
+# looks with their own palette, animated background and display font — the
+# actual styling lives in style.css under [data-theme="<key>"].
+THEMES = [
+    {"key": "dark", "label": "Midnight", "premium": False,
+     "blurb": "The standard JobBot look — calm, dark and focused."},
+    {"key": "light", "label": "Daylight", "premium": False,
+     "blurb": "Bright and clean, for well-lit rooms."},
+    {"key": "aurora", "label": "Aurora", "premium": True,
+     "blurb": "Northern lights drift behind everything — violet and teal, "
+              "with the Sora typeface."},
+    {"key": "ember", "label": "Ember", "premium": True,
+     "blurb": "Warm dusk tones, a slow campfire glow, and elegant serif headings."},
+    {"key": "ocean", "label": "Deep Ocean", "premium": True,
+     "blurb": "Bioluminescent blues that drift like deep water."},
+    {"key": "terminal", "label": "Terminal", "premium": True,
+     "blurb": "Green phosphor on black, scanlines included."},
+]
+THEME_KEYS = {t["key"] for t in THEMES}
+FREE_THEME_KEYS = {t["key"] for t in THEMES if not t["premium"]}
+
+
+def sanitize_theme(value: Optional[str], premium: bool) -> str:
+    """The theme a request actually gets: unknown cookie values fall back to
+    dark, and premium themes quietly fall back to dark when the account isn't
+    premium any more (downgrades and tampered cookies both land here)."""
+    theme = value or "dark"
+    if theme not in THEME_KEYS or (theme not in FREE_THEME_KEYS and not premium):
+        return "dark"
+    return theme
+
+
 # --- flash messages (one-shot banners) -------------------------------------
 def add_flash(request: Request, message: str, category: str = "info") -> None:
     request.session.setdefault("_flashes", []).append({"m": message, "c": category})
@@ -125,12 +159,13 @@ def render(
     status_code: int = 200,
     **context,
 ) -> HTMLResponse:
+    prem = is_premium(user)
     ctx = {
         "request": request,
         "user": user,
-        "premium": is_premium(user),   # every template can gate on this
+        "premium": prem,   # every template can gate on this
         "flashes": _pop_flashes(request),
-        "theme": request.cookies.get("theme") or "dark",
+        "theme": sanitize_theme(request.cookies.get("theme"), prem),
         "asset_v": asset_version(),
         **context,
     }

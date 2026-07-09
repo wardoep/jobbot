@@ -74,12 +74,30 @@ def healthz():
 
 @app.get("/theme")
 def set_theme(request: Request, value: str | None = Query(default=None, alias="set")):
-    """Persist the light/dark preference in a cookie, then bounce back."""
+    """Persist the theme choice in a cookie, then bounce back. dark/light are
+    free; every other look is Premium and is checked against the logged-in
+    user (render() re-checks on every page, so a stale cookie can't stick)."""
+    from app.db import Session as DbSession
+    from app.models import User
+    from app.web.deps import FREE_THEME_KEYS, THEME_KEYS, is_premium
+
     current = request.cookies.get("theme") or "dark"
-    if value in ("light", "dark"):
+    if value in THEME_KEYS:
         theme = value
-    else:
+    else:  # no/unknown value: the original light/dark toggle
         theme = "light" if current == "dark" else "dark"
+
+    if theme not in FREE_THEME_KEYS:
+        db = DbSession()
+        try:
+            uid = request.session.get("user_id")
+            account = db.get(User, uid) if uid else None
+            if not is_premium(account):
+                add_flash(request, "That theme is part of Premium.", "error")
+                return RedirectResponse("/premium", status_code=303)
+        finally:
+            db.close()
+
     response = RedirectResponse(
         request.headers.get("referer") or "/dashboard", status_code=303
     )

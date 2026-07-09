@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Themes · JobBot{% endblock %}
+{% block main_class %} hm-page{% endblock %}
+{% block body %}
+<style>
+  /* Themes — a grid of cards, each with a LIVE miniature of that look:
+     real palette, real display font, and (Premium looks) the same drifting
+     background blobs the full theme runs, sped up so the motion shows in a
+     small card. Palettes are hardcoded here because the preview boxes can't
+     inherit another theme's :root tokens. */
+  .th-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 18px; }
+  @media (max-width: 860px) { .th-grid { grid-template-columns: 1fr; } }
+
+  .th-card.card { padding: 14px 14px 16px; display: flex; flex-direction: column; gap: 0; }
+  .th-card.current { border: 2px solid var(--blue); padding: 13px 13px 15px; }
+
+  .th-prev {
+    position: relative; height: 150px; border-radius: 11px; overflow: hidden;
+    border: 1px solid rgba(127,127,127,.25);
+  }
+  .th-prev i { position: absolute; border-radius: 50%; filter: blur(18px); will-change: transform; }
+  .th-side { position: absolute; left: 0; top: 0; bottom: 0; width: 25%; }
+  .th-side::before, .th-side::after {
+    content: ''; position: absolute; left: 12%; height: 5px; border-radius: 3px;
+    background: rgba(255,255,255,.22); width: 70%;
+  }
+  .th-side::before { top: 16px; }
+  .th-side::after { top: 30px; width: 52%; }
+  .th-body { position: absolute; left: 25%; right: 0; top: 0; bottom: 0; padding: 14px 16px; }
+  .th-h { display: block; font-size: 26px; font-weight: 700; letter-spacing: -.02em; line-height: 1; }
+  .th-line { display: block; height: 6px; border-radius: 3px; margin-top: 9px; width: 82%; opacity: .5; }
+  .th-line.s { width: 58%; }
+  .th-pill {
+    display: inline-block; margin-top: 12px; width: 74px; height: 20px; border-radius: 999px;
+  }
+
+  .th-meta { display: flex; align-items: center; gap: 8px; margin: 12px 2px 4px; }
+  .th-name { font-family: var(--font-display); font-weight: 700; font-size: 15px; color: var(--text); }
+  .th-blurb { font-size: 12.5px; color: var(--text-2); line-height: 1.55; margin: 0 2px 12px; }
+  .th-act { margin-top: auto; }
+  .th-inuse {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: var(--font-display); font-weight: 700; font-size: 12.5px; color: var(--green);
+  }
+
+  /* ---- the six palettes ---- */
+  .th-prev.dark  { background: #0A1426; } .th-prev.dark .th-side { background: #0D1B2E; }
+  .th-prev.dark .th-h { color: #F8FAFC; } .th-prev.dark .th-pill { background: #6366F1; }
+  .th-prev.dark .th-line { background: #2c3d5c; }
+
+  .th-prev.light { background: #f4f7fc; } .th-prev.light .th-side { background: #0f1730; }
+  .th-prev.light .th-h { color: #0f1730; } .th-prev.light .th-pill { background: #4f46e5; }
+  .th-prev.light .th-line { background: #d6dfee; }
+
+  .th-prev.aurora { background: #0a0a1f; } .th-prev.aurora .th-side { background: rgba(13,13,36,.82); }
+  .th-prev.aurora .th-h { color: #F8FAFC; font-family: 'Sora', 'Inter', sans-serif; }
+  .th-prev.aurora .th-pill { background: #8b5cf6; } .th-prev.aurora .th-line { background: #34346b; }
+  .th-prev.aurora .b1 { width: 130px; height: 130px; left: 12%; top: -46px;
+    background: rgba(45,212,191,.6); animation: jbdrift1 7s ease-in-out infinite; }
+  .th-prev.aurora .b2 { width: 150px; height: 150px; right: -40px; bottom: -60px;
+    background: rgba(124,58,237,.65); animation: jbdrift2 9s ease-in-out infinite; }
+
+  .th-prev.ember { background: #170f0a; } .th-prev.ember .th-side { background: rgba(27,17,12,.82); }
+  .th-prev.ember .th-h { color: #faf3ec; font-family: 'Fraunces', Georgia, serif; }
+  .th-prev.ember .th-pill { background: #f97316; } .th-prev.ember .th-line { background: #4b3323; }
+  .th-prev.ember .b1 { width: 150px; height: 150px; left: 18%; bottom: -70px;
+    background: rgba(249,115,22,.55); animation: jbbreathe 6s ease-in-out infinite; }
+  .th-prev.ember .b2 { width: 120px; height: 120px; right: -30px; top: -40px;
+    background: rgba(225,29,72,.4); animation: jbdrift2 8s ease-in-out infinite; }
+
+  .th-prev.ocean { background: #041420; } .th-prev.ocean .th-side { background: rgba(5,26,41,.82); }
+  .th-prev.ocean .th-h { color: #F8FAFC; } .th-prev.ocean .th-pill { background: #06b6d4; }
+  .th-prev.ocean .th-line { background: #14415f; }
+  .th-prev.ocean .b1 { width: 150px; height: 150px; left: 8%; top: -56px;
+    background: rgba(8,145,178,.6); animation: jbdrift2 8s ease-in-out infinite; }
+  .th-prev.ocean .b2 { width: 130px; height: 130px; right: -34px; bottom: -50px;
+    background: rgba(29,78,216,.55); animation: jbdrift1 10s ease-in-out infinite; }
+
+  .th-prev.terminal { background: #030906; } .th-prev.terminal .th-side { background: rgba(5,13,7,.85); }
+  .th-prev.terminal .th-h { color: #d1fae5; font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  .th-prev.terminal .th-pill { background: #22c55e; } .th-prev.terminal .th-line { background: #1d4a2e; }
+  .th-prev.terminal .b1 { width: 170px; height: 170px; left: 26%; top: -70px;
+    background: rgba(22,163,74,.5); animation: jbbreathe 5.5s ease-in-out infinite; }
+  .th-prev.terminal::after {
+    content: ''; position: absolute; inset: 0;
+    background: repeating-linear-gradient(0deg, rgba(0,0,0,.22) 0 1px, transparent 1px 3px);
+  }
+
+  @media (prefers-reduced-motion: reduce) { .th-prev i { animation: none !important; } }
+</style>
+
+<p class="eyebrow">Appearance</p>
+<h1 class="sg">Themes</h1>
+<p class="sub">Every preview below is live — the Premium looks really do move like that,
+  with their own colors, animated backgrounds and typefaces.
+  {% if not premium %}Midnight and Daylight are yours on the free plan; the other four
+  come with <a href="/premium">Premium ✦</a>.{% endif %}</p>
+
+<div class="th-grid">
+  {% for t in themes %}
+    <div class="th-card card {% if theme == t.key %}current{% endif %}">
+      <div class="th-prev {{ t.key }}" aria-hidden="true">
+        <i class="b1"></i><i class="b2"></i>
+        <span class="th-side"></span>
+        <div class="th-body">
+          <b class="th-h">Aa</b>
+          <span class="th-line"></span><span class="th-line s"></span>
+          <span class="th-pill"></span>
+        </div>
+      </div>
+      <div class="th-meta">
+        <span class="th-name">{{ t.label }}</span>
+        {% if t.premium %}<span class="plan-chip">✦ Premium</span>
+        {% else %}<span class="plan-chip free">Free</span>{% endif %}
+      </div>
+      <p class="th-blurb">{{ t.blurb }}</p>
+      <div class="th-act">
+        {% if theme == t.key %}
+          <span class="th-inuse">✓ In use</span>
+        {% elif not t.premium or premium %}
+          <a class="btn small" href="/theme?set={{ t.key }}">Use this theme</a>
+        {% else %}
+          <a class="btn small secondary" href="/premium">✦ Get Premium</a>
+        {% endif %}
+      </div>
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}

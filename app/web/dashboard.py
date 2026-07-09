@@ -344,6 +344,18 @@ def premium_page(
                   free_limit=settings.free_match_limit)
 
 
+@router.get("/themes")
+def themes_page(
+    request: Request,
+    user: User = Depends(require_user),
+):
+    """Pick the app's look. Everyone sees every theme as a LIVE animated
+    preview (the enticement); applying a Premium one is checked in /theme."""
+    from app.web.deps import THEMES
+
+    return render(request, "themes.html", user=user, themes=THEMES)
+
+
 @router.get("/matches")
 def matches(
     request: Request,

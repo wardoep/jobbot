@@ -69,7 +69,11 @@
   color-scheme: light;
 }
 
-:root[data-theme="dark"] {
+/* The Premium themes (aurora/ember/ocean/terminal) are dark-based: they share
+   this whole block and then re-tint accents/surfaces/fonts in the PREMIUM
+   THEMES section at the bottom of this file. */
+:root[data-theme="dark"], :root[data-theme="aurora"], :root[data-theme="ember"],
+:root[data-theme="ocean"], :root[data-theme="terminal"] {
   --link:#A5B4FC;
   --blue:#6366F1;
 
@@ -234,7 +238,7 @@ body.has-shell { display: flex; flex-direction: row; min-height: 100vh; }
   color: var(--sidebar-text-strong); font-weight: 600; font-size: 12.5px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.jb-user-info a { color: #9fb8ff; font-size: 11.5px; }
+.jb-user-info a { color: var(--sidebar-link, #9fb8ff); font-size: 11.5px; }
 .jb-user-info a:hover { text-decoration: underline; }
 /* profile block: avatar + email open the Options page; Log out stays separate.
    Additive rules only — the email link keeps its existing strong-white look via a
@@ -1581,3 +1585,159 @@ tbody tr:hover { background: var(--inset); }
 .pv-sub b { color:var(--text); }
 /* Matches board: trailing sample cards behind the "N more" CTA card. */
 .mg-card.pv-ghost { pointer-events:none; user-select:none; opacity:.45; filter:grayscale(.5) saturate(.7); }
+
+/* ============================================================ PREMIUM THEMES
+   (2026-07-09) Four Premium looks on top of the dark base (they share the
+   dark token block up top via its grouped selector): each re-tints the
+   accents + surfaces, may swap the display font, and lights up the .jb-fx
+   animated background layer that base.html renders behind the shell. */
+
+/* content sits above the fx layer */
+.jb-main { position: relative; z-index: 1; }
+.jb-aside { z-index: 1; }
+
+/* ---- the animated background layer ---- */
+.jb-fx { display: none; position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.jb-fx i { position: absolute; border-radius: 50%; filter: blur(90px); will-change: transform; }
+@keyframes jbdrift1 { 0%,100% { transform: translate(0,0) } 50% { transform: translate(70px,-48px) } }
+@keyframes jbdrift2 { 0%,100% { transform: translate(0,0) } 50% { transform: translate(-84px,56px) } }
+@keyframes jbbreathe { 0%,100% { opacity: .5; transform: scale(1) } 50% { opacity: .9; transform: scale(1.12) } }
+@media (prefers-reduced-motion: reduce) { .jb-fx i, .jb-fx::after { animation: none !important; } }
+
+/* ---------------- AURORA — northern lights, violet/teal, Sora ------------ */
+:root[data-theme="aurora"] {
+  --font-display:'Sora','Inter',-apple-system,system-ui,sans-serif;
+  --link:#a78bfa; --blue:#8b5cf6; --navy:#8b5cf6; --brand-d:#7c3aed; --cyan:#2dd4bf;
+  --page:#0a0a1f; --surface:#12122b; --inset:#0d0d24; --track:#20204a;
+  --border:#232350; --border-input:#232350;
+  --info:#c4b5fd; --info-bg:#191542; --info-bd:#2f2670;
+  --ghost-bg:rgba(139,92,246,.2); --ghost-fg:#c4b5fd;
+  --focus:rgba(139,92,246,.28);
+  --flash-info-bg:#191542; --flash-info-fg:#c4b5fd; --flash-info-bd:#2f2670;
+  --sidebar:#0d0d24; --sidebar-active:rgba(167,139,250,.2); --sidebar-link:#c4b5fd;
+}
+[data-theme="aurora"] .jb-fx { display: block; }
+[data-theme="aurora"] .jb-fx i:nth-child(1) {
+  width: 660px; height: 660px; left: -160px; top: -200px;
+  background: radial-gradient(circle, rgba(45,212,191,.34), transparent 65%);
+  animation: jbdrift1 36s ease-in-out infinite;
+}
+[data-theme="aurora"] .jb-fx i:nth-child(2) {
+  width: 760px; height: 760px; right: -240px; top: 12%;
+  background: radial-gradient(circle, rgba(124,58,237,.36), transparent 65%);
+  animation: jbdrift2 46s ease-in-out infinite;
+}
+[data-theme="aurora"] .jb-fx i:nth-child(3) {
+  width: 600px; height: 600px; left: 26%; bottom: -240px;
+  background: radial-gradient(circle, rgba(99,102,241,.3), transparent 65%);
+  animation: jbbreathe 24s ease-in-out infinite;
+}
+
+/* ---------------- EMBER — dusk, campfire glow, Fraunces serif ------------ */
+:root[data-theme="ember"] {
+  --font-display:'Fraunces',Georgia,'Times New Roman',serif;
+  --link:#fdba74; --blue:#f97316; --navy:#f97316; --brand-d:#ea580c; --cyan:#fb7185;
+  --page:#170f0a; --surface:#221610; --inset:#1b110c; --track:#382517;
+  --border:#382517; --border-input:#382517;
+  --text:#faf3ec; --text-2:#c2ab99; --muted:#94806f; --faint:#94806f;
+  --info:#fdba74; --info-bg:#2c1c0e; --info-bd:#553317;
+  --ghost-bg:rgba(249,115,22,.16); --ghost-fg:#fdba74;
+  --focus:rgba(249,115,22,.28);
+  --flash-info-bg:#2c1c0e; --flash-info-fg:#fdba74; --flash-info-bd:#553317;
+  --badge-new-bg:#faf3ec; --badge-new-fg:#170f0a;
+  --sidebar:#1b110c; --sidebar-text:#c2a68d; --sidebar-active:rgba(251,146,60,.18);
+  --sidebar-link:#fdba74; --sidebar-line:rgba(255,220,190,.1);
+  --sidebar-ring:rgba(214,170,130,.3); --sidebar-hover:rgba(255,220,190,.07);
+}
+[data-theme="ember"] .jb-fx { display: block; }
+[data-theme="ember"] .jb-fx i:nth-child(1) {
+  width: 700px; height: 700px; left: -180px; bottom: -280px;
+  background: radial-gradient(circle, rgba(249,115,22,.3), transparent 65%);
+  animation: jbbreathe 18s ease-in-out infinite;
+}
+[data-theme="ember"] .jb-fx i:nth-child(2) {
+  width: 640px; height: 640px; right: -200px; bottom: -160px;
+  background: radial-gradient(circle, rgba(225,29,72,.22), transparent 65%);
+  animation: jbdrift2 40s ease-in-out infinite;
+}
+[data-theme="ember"] .jb-fx i:nth-child(3) {
+  width: 520px; height: 520px; right: 22%; top: -240px;
+  background: radial-gradient(circle, rgba(251,191,36,.14), transparent 65%);
+  animation: jbdrift1 48s ease-in-out infinite;
+}
+
+/* ---------------- DEEP OCEAN — bioluminescent blues ---------------------- */
+:root[data-theme="ocean"] {
+  --link:#67e8f9; --blue:#06b6d4; --navy:#06b6d4; --brand-d:#0891b2; --cyan:#22d3ee;
+  --page:#041420; --surface:#082133; --inset:#051a29; --track:#0f3049;
+  --border:#0f3049; --border-input:#0f3049;
+  --info:#7dd3fc; --info-bg:#07293f; --info-bd:#0e4d70;
+  --ghost-bg:rgba(6,182,212,.18); --ghost-fg:#67e8f9;
+  --focus:rgba(34,211,238,.25);
+  --flash-info-bg:#07293f; --flash-info-fg:#7dd3fc; --flash-info-bd:#0e4d70;
+  --sidebar:#051a29; --sidebar-active:rgba(34,211,238,.16); --sidebar-link:#67e8f9;
+}
+[data-theme="ocean"] .jb-fx { display: block; }
+[data-theme="ocean"] .jb-fx i:nth-child(1) {
+  width: 720px; height: 720px; left: -220px; top: 30%;
+  background: radial-gradient(circle, rgba(8,145,178,.32), transparent 65%);
+  animation: jbdrift1 52s ease-in-out infinite;
+}
+[data-theme="ocean"] .jb-fx i:nth-child(2) {
+  width: 680px; height: 680px; right: -180px; top: -220px;
+  background: radial-gradient(circle, rgba(29,78,216,.28), transparent 65%);
+  animation: jbdrift2 60s ease-in-out infinite;
+}
+[data-theme="ocean"] .jb-fx i:nth-child(3) {
+  width: 540px; height: 540px; left: 38%; bottom: -220px;
+  background: radial-gradient(circle, rgba(45,212,191,.2), transparent 65%);
+  animation: jbbreathe 30s ease-in-out infinite;
+}
+
+/* ---------------- TERMINAL — green phosphor, JetBrains Mono -------------- */
+:root[data-theme="terminal"] {
+  --font-display:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --link:#4ade80; --blue:#22c55e; --navy:#22c55e; --brand-d:#16a34a; --cyan:#86efac;
+  --page:#030906; --surface:#08130a; --inset:#050d07; --track:#123018;
+  --border:#153823; --border-input:#153823;
+  --text:#d1fae5; --text-2:#8fbfa3; --muted:#5e8f74; --faint:#527e66;
+  --info:#86efac; --info-bg:#07200f; --info-bd:#14532d;
+  --ghost-bg:rgba(34,197,94,.15); --ghost-fg:#86efac;
+  --focus:rgba(74,222,128,.28);
+  --flash-info-bg:#07200f; --flash-info-fg:#86efac; --flash-info-bd:#14532d;
+  --badge-new-bg:#d1fae5; --badge-new-fg:#030906;
+  --sidebar:#050d07; --sidebar-text:#79a98c; --sidebar-active:rgba(74,222,128,.15);
+  --sidebar-link:#4ade80; --sidebar-line:rgba(134,239,172,.1);
+  --sidebar-ring:rgba(74,222,128,.3); --sidebar-hover:rgba(134,239,172,.06);
+}
+[data-theme="terminal"] .jb-fx { display: block; }
+[data-theme="terminal"] .jb-fx i:nth-child(1) {
+  width: 760px; height: 760px; left: 18%; top: -320px;
+  background: radial-gradient(circle, rgba(22,163,74,.26), transparent 65%);
+  animation: jbbreathe 22s ease-in-out infinite;
+}
+[data-theme="terminal"] .jb-fx i:nth-child(2) {
+  width: 560px; height: 560px; right: -180px; bottom: -200px;
+  background: radial-gradient(circle, rgba(21,128,61,.2), transparent 65%);
+  animation: jbdrift2 44s ease-in-out infinite;
+}
+[data-theme="terminal"] .jb-fx i:nth-child(3) { display: none; }
+/* CRT scanlines over the glow, under the content */
+[data-theme="terminal"] .jb-fx::after {
+  content: ''; position: absolute; inset: 0;
+  background: repeating-linear-gradient(0deg, rgba(0,0,0,.16) 0 1px, transparent 1px 3px);
+}
+
+/* ---- sidebar: the Premium section + the ✦ next to the email ------------- */
+.jb-navlabel {
+  margin: 14px 10px 4px; padding-top: 12px; border-top: 1px solid var(--sidebar-line);
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--font-display); font-size: 10px; font-weight: 800;
+  letter-spacing: .14em; text-transform: uppercase; color: var(--sidebar-faint);
+}
+.jb-navlabel .st { color: #a5b4fc; font-size: 11px; letter-spacing: 0; }
+.jb-user-star { color: #a5b4fc; font-size: 11px; margin-left: 4px; cursor: default; }
+.jb-user-plan {
+  display: block; font-size: 10px; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--sidebar-faint); margin-top: 1px;
+}

@@ -9,6 +9,9 @@
   <script src="https://unpkg.com/htmx.org@1.9.12"></script>
 </head>
 <body class="{% if user %}has-shell{% endif %}">
+  {# Animated theme backdrop — invisible except on Premium themes (see the
+     PREMIUM THEMES section of style.css). Fixed, behind everything, inert. #}
+  <div class="jb-fx" aria-hidden="true"><i></i><i></i><i></i></div>
   {% if user %}
   <aside class="jb-aside">
     <a class="jb-logo" href="/dashboard">
@@ -24,12 +27,15 @@
       <a class="jb-nav {% if request.url.path == '/dashboard' %}active{% endif %}" href="/dashboard"><span class="jb-ico">⌂</span> Home</a>
       <a class="jb-nav {% if request.url.path.startswith('/resumes') and not request.url.path.startswith('/resumes/builder') %}active{% endif %}" href="/resumes"><span class="jb-ico">▤</span> Resumes</a>
       <a class="jb-nav {% if request.url.path.startswith('/matches') %}active{% endif %}" href="/matches"><span class="jb-ico">▦</span> Matches</a>
-      <a class="jb-nav {% if request.url.path.startswith('/resumes/builder') %}active{% endif %}" href="/resumes/builder"><span class="jb-ico">✎</span> Resume builder{% if not premium %} <span style="color:#a5b4fc;font-size:11px">✦</span>{% endif %}</a>
       <a class="jb-nav {% if request.url.path.startswith('/preferences') %}active{% endif %}" href="/preferences"><span class="jb-ico">⚙</span> Preferences</a>
       <a class="jb-nav {% if request.url.path.startswith('/options') %}active{% endif %}" href="/options"><span class="jb-ico">☰</span> Options</a>
       {% if user.role == 'admin' %}
       <a class="jb-nav {% if request.url.path.startswith('/admin') %}active{% endif %}" href="/admin"><span class="jb-ico">◆</span> Admin</a>
       {% endif %}
+      {# ---- the Premium tabs get their own labeled section ---- #}
+      <div class="jb-navlabel"><span class="st">✦</span> Premium</div>
+      <a class="jb-nav {% if request.url.path.startswith('/resumes/builder') %}active{% endif %}" href="/resumes/builder"><span class="jb-ico">✎</span> Resume builder</a>
+      <a class="jb-nav {% if request.url.path.startswith('/themes') %}active{% endif %}" href="/themes"><span class="jb-ico">◐</span> Themes</a>
     </nav>
     <div class="jb-spacer"></div>
     <div class="jb-user">
@@ -39,7 +45,7 @@
         </span>
       </a>
       <div class="jb-user-info">
-        <a class="jb-user-email jb-user-account" href="/options" title="Account settings">{{ user.email }}</a>
+        <a class="jb-user-email jb-user-account" href="/options" title="Account settings">{{ user.email }}{% if premium %} <span class="jb-user-star" title="Premium account">✦</span>{% endif %}</a>
         <a href="/logout">Log out</a>
       </div>
     </div>

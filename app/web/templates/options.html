@@ -157,8 +157,11 @@
           {% endif %}
         </div>
         <div class="opt-id">
-          <div class="opt-name sg">{{ user.display_name or user.email.split('@')[0] }}</div>
+          <div class="opt-name sg">{{ user.display_name or user.email.split('@')[0] }}
+            {% if premium %}<span class="plan-chip" title="This account has Premium" style="margin-left:6px;vertical-align:2px">✦ Premium</span>{% endif %}</div>
           <div class="opt-email">{{ user.email }}</div>
+          {% if not premium %}<div class="opt-desc" style="margin-top:3px">Free plan ·
+            <a href="/premium">see what Premium adds ✦</a></div>{% endif %}
         </div>
         <span class="btn secondary opt-btn sg">Edit profile</span>
       </summary>
@@ -416,8 +419,13 @@
     <label class="opt-fieldlabel sg">Theme</label>
     <div class="segmented opt-theme">
       <a class="seg {% if theme == 'light' %}active{% endif %}" href="/theme?set=light">☀ Light</a>
-      <a class="seg {% if theme != 'light' %}active{% endif %}" href="/theme?set=dark">🌙 Dark</a>
+      <a class="seg {% if theme == 'dark' %}active{% endif %}" href="/theme?set=dark">🌙 Dark</a>
     </div>
+    <p class="opt-desc" style="margin-top:10px">
+      {% if theme not in ('light', 'dark') %}You're using a Premium theme right now.{% endif %}
+      Four more looks — animated backgrounds, their own colors and typefaces —
+      live on the <a href="/themes">Themes page</a> <span style="color:var(--ghost-fg)">✦</span>.
+    </p>
   </div>
 
   {# ----------------------------------------------------------- SECURITY #}
