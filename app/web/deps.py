@@ -202,12 +202,22 @@ def render(
     **context,
 ) -> HTMLResponse:
     prem = is_premium(user)
+    theme = sanitize_theme(request.cookies.get("theme"), prem)
+    # Free-account theme trial (/theme?try=<preset>): a short-lived cookie
+    # lets anyone wear a premium PRESET; the banner in base.html sells it.
+    trial_label = None
+    if not prem:
+        trial = request.cookies.get("theme_trial") or ""
+        if trial in THEME_KEYS and trial not in FREE_THEME_KEYS:
+            theme = trial
+            trial_label = next(t["label"] for t in THEMES if t["key"] == trial)
     ctx = {
         "request": request,
         "user": user,
         "premium": prem,   # every template can gate on this
         "flashes": _pop_flashes(request),
-        "theme": sanitize_theme(request.cookies.get("theme"), prem),
+        "theme": theme,
+        "trial_theme": trial_label,
         "asset_v": asset_version(),
         **context,
     }

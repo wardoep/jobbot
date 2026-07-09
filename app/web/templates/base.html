@@ -63,6 +63,16 @@
   {% endif %}
 
   <main class="{% if user %}jb-main{% else %}jb-plain{% endif %}{% block main_class %}{% endblock %}">
+    {% if trial_theme %}
+    <div class="trial-bar">
+      <span>✦ Previewing <b>{{ trial_theme }}</b> — it's yours to keep with Premium.
+        The preview ends by itself in a few minutes.</span>
+      <span class="trial-acts">
+        <a class="tb-get" href="/premium">Get Premium →</a>
+        <a class="tb-stop" href="/theme?try=stop">Stop preview</a>
+      </span>
+    </div>
+    {% endif %}
     {% for f in flashes %}<div class="flash {{ f.c }}">{{ f.m }}</div>{% endfor %}
     {% block body %}{% endblock %}
   </main>

@@ -1599,7 +1599,7 @@ tbody tr:hover { background: var(--inset); }
 
 /* ---- the animated background layer ---- */
 .jb-fx { display: none; position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
-.jb-fx i { position: absolute; border-radius: 50%; filter: blur(90px); will-change: transform; }
+.jb-fx i { position: absolute; border-radius: 50%; will-change: transform; }
 @keyframes jbdrift1 { 0%,100% { transform: translate(0,0) } 50% { transform: translate(70px,-48px) } }
 @keyframes jbdrift2 { 0%,100% { transform: translate(0,0) } 50% { transform: translate(-84px,56px) } }
 @keyframes jbbreathe { 0%,100% { opacity: .5; transform: scale(1) } 50% { opacity: .9; transform: scale(1.12) } }
@@ -1621,17 +1621,17 @@ tbody tr:hover { background: var(--inset); }
 [data-theme="aurora"] .jb-fx { display: block; }
 [data-theme="aurora"] .jb-fx i:nth-child(1) {
   width: 660px; height: 660px; left: -160px; top: -200px;
-  background: radial-gradient(circle, rgba(45,212,191,.34), transparent 65%);
+  background: radial-gradient(circle, rgba(45,212,191,.34) 0%, rgba(45,212,191,.17) 40%, transparent 72%);
   animation: jbdrift1 36s ease-in-out infinite;
 }
 [data-theme="aurora"] .jb-fx i:nth-child(2) {
   width: 760px; height: 760px; right: -240px; top: 12%;
-  background: radial-gradient(circle, rgba(124,58,237,.36), transparent 65%);
+  background: radial-gradient(circle, rgba(124,58,237,.36) 0%, rgba(124,58,237,.18) 40%, transparent 72%);
   animation: jbdrift2 46s ease-in-out infinite;
 }
 [data-theme="aurora"] .jb-fx i:nth-child(3) {
   width: 600px; height: 600px; left: 26%; bottom: -240px;
-  background: radial-gradient(circle, rgba(99,102,241,.3), transparent 65%);
+  background: radial-gradient(circle, rgba(99,102,241,.3) 0%, rgba(99,102,241,.15) 40%, transparent 72%);
   animation: jbbreathe 24s ease-in-out infinite;
 }
 
@@ -1655,17 +1655,17 @@ tbody tr:hover { background: var(--inset); }
 [data-theme="ember"] .jb-fx { display: block; }
 [data-theme="ember"] .jb-fx i:nth-child(1) {
   width: 700px; height: 700px; left: -180px; bottom: -280px;
-  background: radial-gradient(circle, rgba(249,115,22,.3), transparent 65%);
+  background: radial-gradient(circle, rgba(249,115,22,.3) 0%, rgba(249,115,22,.15) 40%, transparent 72%);
   animation: jbbreathe 18s ease-in-out infinite;
 }
 [data-theme="ember"] .jb-fx i:nth-child(2) {
   width: 640px; height: 640px; right: -200px; bottom: -160px;
-  background: radial-gradient(circle, rgba(225,29,72,.22), transparent 65%);
+  background: radial-gradient(circle, rgba(225,29,72,.22) 0%, rgba(225,29,72,.11) 40%, transparent 72%);
   animation: jbdrift2 40s ease-in-out infinite;
 }
 [data-theme="ember"] .jb-fx i:nth-child(3) {
   width: 520px; height: 520px; right: 22%; top: -240px;
-  background: radial-gradient(circle, rgba(251,191,36,.14), transparent 65%);
+  background: radial-gradient(circle, rgba(251,191,36,.14) 0%, rgba(251,191,36,.07) 40%, transparent 72%);
   animation: jbdrift1 48s ease-in-out infinite;
 }
 
@@ -1684,17 +1684,17 @@ tbody tr:hover { background: var(--inset); }
 [data-theme="ocean"] .jb-fx { display: block; }
 [data-theme="ocean"] .jb-fx i:nth-child(1) {
   width: 720px; height: 720px; left: -220px; top: 30%;
-  background: radial-gradient(circle, rgba(8,145,178,.32), transparent 65%);
+  background: radial-gradient(circle, rgba(8,145,178,.32) 0%, rgba(8,145,178,.16) 40%, transparent 72%);
   animation: jbdrift1 52s ease-in-out infinite;
 }
 [data-theme="ocean"] .jb-fx i:nth-child(2) {
   width: 680px; height: 680px; right: -180px; top: -220px;
-  background: radial-gradient(circle, rgba(29,78,216,.28), transparent 65%);
+  background: radial-gradient(circle, rgba(29,78,216,.28) 0%, rgba(29,78,216,.14) 40%, transparent 72%);
   animation: jbdrift2 60s ease-in-out infinite;
 }
 [data-theme="ocean"] .jb-fx i:nth-child(3) {
   width: 540px; height: 540px; left: 38%; bottom: -220px;
-  background: radial-gradient(circle, rgba(45,212,191,.2), transparent 65%);
+  background: radial-gradient(circle, rgba(45,212,191,.2) 0%, rgba(45,212,191,.1) 40%, transparent 72%);
   animation: jbbreathe 30s ease-in-out infinite;
 }
 
@@ -1718,12 +1718,12 @@ tbody tr:hover { background: var(--inset); }
 [data-theme="terminal"] .jb-fx { display: block; }
 [data-theme="terminal"] .jb-fx i:nth-child(1) {
   width: 760px; height: 760px; left: 18%; top: -320px;
-  background: radial-gradient(circle, rgba(22,163,74,.26), transparent 65%);
+  background: radial-gradient(circle, rgba(22,163,74,.26) 0%, rgba(22,163,74,.13) 40%, transparent 72%);
   animation: jbbreathe 22s ease-in-out infinite;
 }
 [data-theme="terminal"] .jb-fx i:nth-child(2) {
   width: 560px; height: 560px; right: -180px; bottom: -200px;
-  background: radial-gradient(circle, rgba(21,128,61,.2), transparent 65%);
+  background: radial-gradient(circle, rgba(21,128,61,.2) 0%, rgba(21,128,61,.1) 40%, transparent 72%);
   animation: jbdrift2 44s ease-in-out infinite;
 }
 [data-theme="terminal"] .jb-fx i:nth-child(3) { display: none; }
@@ -1763,17 +1763,17 @@ tbody tr:hover { background: var(--inset); }
 [data-theme="synthwave"] .jb-fx { display: block; }
 [data-theme="synthwave"] .jb-fx i:nth-child(1) {
   width: 700px; height: 700px; left: -180px; top: -220px;
-  background: radial-gradient(circle, rgba(217,70,239,.4), transparent 65%);
+  background: radial-gradient(circle, rgba(217,70,239,.4) 0%, rgba(217,70,239,.2) 40%, transparent 72%);
   animation: jbdrift1 30s ease-in-out infinite;
 }
 [data-theme="synthwave"] .jb-fx i:nth-child(2) {
   width: 720px; height: 720px; right: -220px; bottom: -200px;
-  background: radial-gradient(circle, rgba(124,58,237,.45), transparent 65%);
+  background: radial-gradient(circle, rgba(124,58,237,.45) 0%, rgba(124,58,237,.23) 40%, transparent 72%);
   animation: jbdrift2 40s ease-in-out infinite;
 }
 [data-theme="synthwave"] .jb-fx i:nth-child(3) {
   width: 540px; height: 540px; left: 34%; top: 46%;
-  background: radial-gradient(circle, rgba(79,70,229,.3), transparent 65%);
+  background: radial-gradient(circle, rgba(79,70,229,.3) 0%, rgba(79,70,229,.15) 40%, transparent 72%);
   animation: jbbreathe 20s ease-in-out infinite;
 }
 
@@ -1795,17 +1795,17 @@ tbody tr:hover { background: var(--inset); }
 [data-theme="blossom"] .jb-fx { display: block; }
 [data-theme="blossom"] .jb-fx i:nth-child(1) {
   width: 660px; height: 660px; left: -160px; top: -200px;
-  background: radial-gradient(circle, rgba(244,63,94,.3), transparent 65%);
+  background: radial-gradient(circle, rgba(244,63,94,.3) 0%, rgba(244,63,94,.15) 40%, transparent 72%);
   animation: jbdrift1 38s ease-in-out infinite;
 }
 [data-theme="blossom"] .jb-fx i:nth-child(2) {
   width: 620px; height: 620px; right: -180px; bottom: -180px;
-  background: radial-gradient(circle, rgba(251,146,60,.22), transparent 65%);
+  background: radial-gradient(circle, rgba(251,146,60,.22) 0%, rgba(251,146,60,.11) 40%, transparent 72%);
   animation: jbdrift2 46s ease-in-out infinite;
 }
 [data-theme="blossom"] .jb-fx i:nth-child(3) {
   width: 500px; height: 500px; left: 40%; bottom: -200px;
-  background: radial-gradient(circle, rgba(251,113,133,.18), transparent 65%);
+  background: radial-gradient(circle, rgba(251,113,133,.18) 0%, rgba(251,113,133,.09) 40%, transparent 72%);
   animation: jbbreathe 26s ease-in-out infinite;
 }
 
@@ -1829,12 +1829,12 @@ tbody tr:hover { background: var(--inset); }
 [data-theme="gilded"] .jb-fx { display: block; }
 [data-theme="gilded"] .jb-fx i:nth-child(1) {
   width: 720px; height: 720px; left: 20%; bottom: -300px;
-  background: radial-gradient(circle, rgba(245,158,11,.28), transparent 65%);
+  background: radial-gradient(circle, rgba(245,158,11,.28) 0%, rgba(245,158,11,.14) 40%, transparent 72%);
   animation: jbbreathe 20s ease-in-out infinite;
 }
 [data-theme="gilded"] .jb-fx i:nth-child(2) {
   width: 560px; height: 560px; right: -160px; top: -180px;
-  background: radial-gradient(circle, rgba(251,191,36,.18), transparent 65%);
+  background: radial-gradient(circle, rgba(251,191,36,.18) 0%, rgba(251,191,36,.09) 40%, transparent 72%);
   animation: jbdrift2 44s ease-in-out infinite;
 }
 [data-theme="gilded"] .jb-fx i:nth-child(3) { display: none; }
@@ -1845,17 +1845,17 @@ tbody tr:hover { background: var(--inset); }
 [data-theme="custom"] .jb-fx { display: block; }
 [data-theme="custom"] .jb-fx i:nth-child(1) {
   width: 680px; height: 680px; left: -170px; top: -210px;
-  background: radial-gradient(circle, var(--fx-c1, transparent), transparent 65%);
+  background: radial-gradient(circle, var(--fx-c1, transparent) 0%, color-mix(in srgb, var(--fx-c1, transparent) 50%, transparent) 40%, transparent 72%);
   animation: jbdrift1 36s ease-in-out infinite;
 }
 [data-theme="custom"] .jb-fx i:nth-child(2) {
   width: 700px; height: 700px; right: -210px; bottom: -190px;
-  background: radial-gradient(circle, var(--fx-c2, transparent), transparent 65%);
+  background: radial-gradient(circle, var(--fx-c2, transparent) 0%, color-mix(in srgb, var(--fx-c2, transparent) 50%, transparent) 40%, transparent 72%);
   animation: jbdrift2 46s ease-in-out infinite;
 }
 [data-theme="custom"] .jb-fx i:nth-child(3) {
   width: 540px; height: 540px; left: 36%; bottom: -220px;
-  background: radial-gradient(circle, var(--fx-c3, transparent), transparent 65%);
+  background: radial-gradient(circle, var(--fx-c3, transparent) 0%, color-mix(in srgb, var(--fx-c3, transparent) 50%, transparent) 40%, transparent 72%);
   animation: jbbreathe 24s ease-in-out infinite;
 }
 [data-theme="custom"][data-fx="glow"] .jb-fx i { animation-name: jbbreathe; }
@@ -1886,3 +1886,16 @@ tbody tr:hover { background: var(--inset); }
   text-decoration: none; box-shadow: 0 10px 22px -12px rgba(99,102,241,.8);
 }
 .jb-upgrade:hover { text-decoration: none; filter: brightness(1.08); }
+
+/* Free-account theme trial (/theme?try=): the slim "you're previewing X" bar. */
+.trial-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  flex-wrap: wrap; margin: 0 0 18px; padding: 10px 15px; border-radius: 12px;
+  border: 1px solid transparent; font-size: 13px; color: var(--text-2);
+  background: linear-gradient(var(--surface), var(--surface)) padding-box,
+              linear-gradient(135deg, #6366f1, #8b5cf6 45%, #2dd4bf) border-box;
+}
+.trial-bar b { color: var(--text); }
+.trial-acts { display: flex; gap: 16px; align-items: center; flex: none; }
+.trial-acts a { font-family: var(--font-display); font-weight: 700; font-size: 12.5px; }
+.trial-acts .tb-stop { color: var(--faint); }

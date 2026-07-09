@@ -46,12 +46,12 @@
     position: relative; overflow: hidden; border-radius: 16px; min-height: 430px;
     border: 1px solid rgba(127,127,127,.25); background: var(--pv-bg);
   }
-  #stu-prev i.blob { position: absolute; border-radius: 50%; filter: blur(46px); will-change: transform; }
+  #stu-prev i.blob { position: absolute; border-radius: 50%; will-change: transform; }
   #stu-prev .b1 { width: 380px; height: 380px; left: -80px; top: -120px;
-    background: radial-gradient(circle, color-mix(in srgb, var(--pv-accent) 45%, transparent), transparent 65%);
+    background: radial-gradient(circle, color-mix(in srgb, var(--pv-accent) 45%, transparent) 0%, color-mix(in srgb, var(--pv-accent) 22%, transparent) 40%, transparent 72%);
     animation: jbdrift1 12s ease-in-out infinite; }
   #stu-prev .b2 { width: 420px; height: 420px; right: -120px; bottom: -140px;
-    background: radial-gradient(circle, color-mix(in srgb, var(--pv-accent2) 45%, transparent), transparent 65%);
+    background: radial-gradient(circle, color-mix(in srgb, var(--pv-accent2) 45%, transparent) 0%, color-mix(in srgb, var(--pv-accent2) 22%, transparent) 40%, transparent 72%);
     animation: jbdrift2 16s ease-in-out infinite; }
   #stu-prev[data-fx="glow"] i.blob { animation-name: jbbreathe; }
   #stu-prev[data-fx="off"] i.blob { display: none; }

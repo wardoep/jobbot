@@ -76,13 +76,32 @@ def healthz():
 
 
 @app.get("/theme")
-def set_theme(request: Request, value: str | None = Query(default=None, alias="set")):
+def set_theme(
+    request: Request,
+    value: str | None = Query(default=None, alias="set"),
+    trial: str | None = Query(default=None, alias="try"),
+):
     """Persist the theme choice in a cookie, then bounce back. dark/light are
     free; every other look is Premium and is checked against the logged-in
-    user (render() re-checks on every page, so a stale cookie can't stick)."""
+    user (render() re-checks on every page, so a stale cookie can't stick).
+
+    ?try=<premium preset> is the free-account teaser: a separate ten-minute
+    cookie that render() honors WITHOUT premium, so anyone can wear a look
+    briefly. ?try=stop ends it. Custom studio themes can't be trialed."""
     from app.db import Session as DbSession
     from app.models import User
     from app.web.deps import FREE_THEME_KEYS, THEME_KEYS, is_premium
+
+    if trial is not None:
+        response = RedirectResponse(
+            request.headers.get("referer") or "/themes", status_code=303
+        )
+        if trial == "stop":
+            response.delete_cookie("theme_trial", path="/")
+        elif trial in THEME_KEYS and trial not in FREE_THEME_KEYS:
+            response.set_cookie("theme_trial", trial, max_age=600,
+                                path="/", samesite="lax")
+        return response
 
     current = request.cookies.get("theme") or "dark"
     if value in THEME_KEYS:

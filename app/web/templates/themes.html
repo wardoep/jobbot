@@ -18,7 +18,7 @@
     position: relative; height: 150px; border-radius: 11px; overflow: hidden;
     border: 1px solid rgba(127,127,127,.25);
   }
-  .th-prev i { position: absolute; border-radius: 50%; filter: blur(18px); will-change: transform; }
+  .th-prev i { position: absolute; border-radius: 50%; will-change: transform; }
   .th-side { position: absolute; left: 0; top: 0; bottom: 0; width: 25%; }
   .th-side::before, .th-side::after {
     content: ''; position: absolute; left: 12%; height: 5px; border-radius: 3px;
@@ -56,31 +56,31 @@
   .th-prev.aurora .th-h { color: #F8FAFC; font-family: 'Sora', 'Inter', sans-serif; }
   .th-prev.aurora .th-pill { background: #8b5cf6; } .th-prev.aurora .th-line { background: #34346b; }
   .th-prev.aurora .b1 { width: 130px; height: 130px; left: 12%; top: -46px;
-    background: rgba(45,212,191,.6); animation: jbdrift1 7s ease-in-out infinite; }
+    background: radial-gradient(circle, rgba(45,212,191,.6) 0%, rgba(45,212,191,.3) 40%, transparent 72%); animation: jbdrift1 7s ease-in-out infinite; }
   .th-prev.aurora .b2 { width: 150px; height: 150px; right: -40px; bottom: -60px;
-    background: rgba(124,58,237,.65); animation: jbdrift2 9s ease-in-out infinite; }
+    background: radial-gradient(circle, rgba(124,58,237,.65) 0%, rgba(124,58,237,.33) 40%, transparent 72%); animation: jbdrift2 9s ease-in-out infinite; }
 
   .th-prev.ember { background: #170f0a; } .th-prev.ember .th-side { background: rgba(27,17,12,.82); }
   .th-prev.ember .th-h { color: #faf3ec; font-family: 'Fraunces', Georgia, serif; }
   .th-prev.ember .th-pill { background: #f97316; } .th-prev.ember .th-line { background: #4b3323; }
   .th-prev.ember .b1 { width: 150px; height: 150px; left: 18%; bottom: -70px;
-    background: rgba(249,115,22,.55); animation: jbbreathe 6s ease-in-out infinite; }
+    background: radial-gradient(circle, rgba(249,115,22,.55) 0%, rgba(249,115,22,.28) 40%, transparent 72%); animation: jbbreathe 6s ease-in-out infinite; }
   .th-prev.ember .b2 { width: 120px; height: 120px; right: -30px; top: -40px;
-    background: rgba(225,29,72,.4); animation: jbdrift2 8s ease-in-out infinite; }
+    background: radial-gradient(circle, rgba(225,29,72,.4) 0%, rgba(225,29,72,.2) 40%, transparent 72%); animation: jbdrift2 8s ease-in-out infinite; }
 
   .th-prev.ocean { background: #041420; } .th-prev.ocean .th-side { background: rgba(5,26,41,.82); }
   .th-prev.ocean .th-h { color: #F8FAFC; } .th-prev.ocean .th-pill { background: #06b6d4; }
   .th-prev.ocean .th-line { background: #14415f; }
   .th-prev.ocean .b1 { width: 150px; height: 150px; left: 8%; top: -56px;
-    background: rgba(8,145,178,.6); animation: jbdrift2 8s ease-in-out infinite; }
+    background: radial-gradient(circle, rgba(8,145,178,.6) 0%, rgba(8,145,178,.3) 40%, transparent 72%); animation: jbdrift2 8s ease-in-out infinite; }
   .th-prev.ocean .b2 { width: 130px; height: 130px; right: -34px; bottom: -50px;
-    background: rgba(29,78,216,.55); animation: jbdrift1 10s ease-in-out infinite; }
+    background: radial-gradient(circle, rgba(29,78,216,.55) 0%, rgba(29,78,216,.28) 40%, transparent 72%); animation: jbdrift1 10s ease-in-out infinite; }
 
   .th-prev.terminal { background: #030906; } .th-prev.terminal .th-side { background: rgba(5,13,7,.85); }
   .th-prev.terminal .th-h { color: #d1fae5; font-family: 'JetBrains Mono', ui-monospace, monospace; }
   .th-prev.terminal .th-pill { background: #22c55e; } .th-prev.terminal .th-line { background: #1d4a2e; }
   .th-prev.terminal .b1 { width: 170px; height: 170px; left: 26%; top: -70px;
-    background: rgba(22,163,74,.5); animation: jbbreathe 5.5s ease-in-out infinite; }
+    background: radial-gradient(circle, rgba(22,163,74,.5) 0%, rgba(22,163,74,.25) 40%, transparent 72%); animation: jbbreathe 5.5s ease-in-out infinite; }
   .th-prev.terminal::after {
     content: ''; position: absolute; inset: 0;
     background: repeating-linear-gradient(0deg, rgba(0,0,0,.22) 0 1px, transparent 1px 3px);
@@ -90,25 +90,25 @@
   .th-prev.synthwave .th-h { color: #F8FAFC; font-family: 'Space Grotesk', 'Inter', sans-serif; }
   .th-prev.synthwave .th-pill { background: #d946ef; } .th-prev.synthwave .th-line { background: #43265e; }
   .th-prev.synthwave .b1 { width: 140px; height: 140px; left: 10%; top: -50px;
-    background: rgba(217,70,239,.55); animation: jbdrift1 7s ease-in-out infinite; }
+    background: radial-gradient(circle, rgba(217,70,239,.55) 0%, rgba(217,70,239,.28) 40%, transparent 72%); animation: jbdrift1 7s ease-in-out infinite; }
   .th-prev.synthwave .b2 { width: 150px; height: 150px; right: -40px; bottom: -60px;
-    background: rgba(124,58,237,.6); animation: jbdrift2 9s ease-in-out infinite; }
+    background: radial-gradient(circle, rgba(124,58,237,.6) 0%, rgba(124,58,237,.3) 40%, transparent 72%); animation: jbdrift2 9s ease-in-out infinite; }
 
   .th-prev.blossom { background: #1c0f14; } .th-prev.blossom .th-side { background: rgba(32,15,20,.82); }
   .th-prev.blossom .th-h { color: #fbf3f4; }
   .th-prev.blossom .th-pill { background: #f43f5e; } .th-prev.blossom .th-line { background: #552a35; }
   .th-prev.blossom .b1 { width: 130px; height: 130px; left: 14%; top: -44px;
-    background: rgba(244,63,94,.45); animation: jbdrift1 8s ease-in-out infinite; }
+    background: radial-gradient(circle, rgba(244,63,94,.45) 0%, rgba(244,63,94,.23) 40%, transparent 72%); animation: jbdrift1 8s ease-in-out infinite; }
   .th-prev.blossom .b2 { width: 130px; height: 130px; right: -36px; bottom: -50px;
-    background: rgba(251,146,60,.4); animation: jbdrift2 10s ease-in-out infinite; }
+    background: radial-gradient(circle, rgba(251,146,60,.4) 0%, rgba(251,146,60,.2) 40%, transparent 72%); animation: jbdrift2 10s ease-in-out infinite; }
 
   .th-prev.gilded { background: #120d05; } .th-prev.gilded .th-side { background: rgba(22,15,6,.85); }
   .th-prev.gilded .th-h { color: #faf6ec; font-family: 'Fraunces', Georgia, serif; }
   .th-prev.gilded .th-pill { background: #f59e0b; } .th-prev.gilded .th-line { background: #4a3919; }
   .th-prev.gilded .b1 { width: 160px; height: 160px; left: 26%; bottom: -70px;
-    background: rgba(245,158,11,.45); animation: jbbreathe 6s ease-in-out infinite; }
+    background: radial-gradient(circle, rgba(245,158,11,.45) 0%, rgba(245,158,11,.23) 40%, transparent 72%); animation: jbbreathe 6s ease-in-out infinite; }
   .th-prev.gilded .b2 { width: 110px; height: 110px; right: -28px; top: -36px;
-    background: rgba(251,191,36,.32); animation: jbdrift2 9s ease-in-out infinite; }
+    background: radial-gradient(circle, rgba(251,191,36,.32) 0%, rgba(251,191,36,.16) 40%, transparent 72%); animation: jbdrift2 9s ease-in-out infinite; }
 
   /* custom (studio) theme cards: colors come inline from the saved knobs */
   .th-prev.custom .b1 { width: 140px; height: 140px; left: 12%; top: -48px;
@@ -158,10 +158,12 @@
       <p class="th-blurb">{{ t.blurb }}</p>
       <div class="th-act th-actrow">
         {% if theme == t.key %}
-          <span class="th-inuse">✓ In use</span>
+          <span class="th-inuse">{% if trial_theme and t.premium %}✓ Previewing{% else %}✓ In use{% endif %}</span>
         {% elif not t.premium or premium %}
           <a class="btn small" href="/theme?set={{ t.key }}">Use this theme</a>
         {% else %}
+          <a class="btn small" href="/theme?try={{ t.key }}"
+             title="Wear this theme for a few minutes, free">▶ Try now</a>
           <a class="btn small secondary" href="/premium">✦ Get Premium</a>
         {% endif %}
         {% if t.knobs %}
@@ -183,8 +185,8 @@
     {% set mkey = 'custom:' ~ m.id %}
     <div class="th-card card {% if theme == mkey %}current{% endif %}">
       <div class="th-prev custom" aria-hidden="true" style="background:{{ m.settings.bg }}">
-        <i class="b1" style="background:radial-gradient(circle, color-mix(in srgb, {{ m.settings.accent }} 50%, transparent), transparent 65%)"></i>
-        <i class="b2" style="background:radial-gradient(circle, color-mix(in srgb, {{ m.settings.accent2 }} 50%, transparent), transparent 65%)"></i>
+        <i class="b1" style="background:radial-gradient(circle, color-mix(in srgb, {{ m.settings.accent }} 50%, transparent) 0%, color-mix(in srgb, {{ m.settings.accent }} 25%, transparent) 40%, transparent 72%)"></i>
+        <i class="b2" style="background:radial-gradient(circle, color-mix(in srgb, {{ m.settings.accent2 }} 50%, transparent) 0%, color-mix(in srgb, {{ m.settings.accent2 }} 25%, transparent) 40%, transparent 72%)"></i>
         <span class="th-side" style="background:color-mix(in srgb, color-mix(in oklab, {{ m.settings.bg }} 96%, black) 85%, transparent)"></span>
         <div class="th-body">
           <b class="th-h">Aa</b>
