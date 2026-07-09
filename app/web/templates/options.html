@@ -154,15 +154,16 @@
     <div class="opt-list">
       <div class="opt-row">
         <div>
-          <div class="opt-label sg">Email job alerts</div>
-          <div class="opt-desc">Get an email when new jobs match your preferences.</div>
+          <div class="opt-label sg">Daily job email</div>
+          <div class="opt-desc">A once-a-day email with the top new jobs you shouldn't miss —
+            company, salary and a link to view and apply. Off by default; turn off any time.</div>
         </div>
         {# a submit button styled as a switch: posts the OPPOSITE of the current
            state, preserving the existing email_alerts=on/off contract #}
         <form class="opt-switch-form" method="post" action="/options/notifications">
           <input type="hidden" name="email_alerts" value="{{ 'off' if email_alerts else 'on' }}">
           <button type="submit" class="opt-switch {{ 'on' if email_alerts else '' }}"
-                  aria-label="Toggle email job alerts"
+                  aria-label="Toggle the daily job email"
                   aria-pressed="{{ 'true' if email_alerts else 'false' }}">
             <span class="opt-knob"></span>
           </button>

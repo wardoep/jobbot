@@ -116,7 +116,7 @@ def update_notifications(
         channels.append("email")
     pref.alert_channels = channels or None
     db.commit()
-    add_flash(request, "Email alerts turned " + ("on." if want_email else "off."), "success")
+    add_flash(request, "Daily job email turned " + ("on." if want_email else "off."), "success")
     return RedirectResponse("/options", status_code=303)
 
 

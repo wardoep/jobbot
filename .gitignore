@@ -19,3 +19,6 @@ __pycache__/
 
 # rendered mockup (contains sample account info)
 app/web/static/application-kit-mockup.png
+
+# Local design reference screenshots (contain personal info)
+references/
