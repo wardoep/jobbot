@@ -24,7 +24,7 @@
       <a class="jb-nav {% if request.url.path == '/dashboard' %}active{% endif %}" href="/dashboard"><span class="jb-ico">⌂</span> Home</a>
       <a class="jb-nav {% if request.url.path.startswith('/resumes') and not request.url.path.startswith('/resumes/builder') %}active{% endif %}" href="/resumes"><span class="jb-ico">▤</span> Resumes</a>
       <a class="jb-nav {% if request.url.path.startswith('/matches') %}active{% endif %}" href="/matches"><span class="jb-ico">▦</span> Matches</a>
-      <a class="jb-nav {% if request.url.path.startswith('/resumes/builder') %}active{% endif %}" href="/resumes/builder"><span class="jb-ico">✎</span> Resume builder</a>
+      <a class="jb-nav {% if request.url.path.startswith('/resumes/builder') %}active{% endif %}" href="/resumes/builder"><span class="jb-ico">✎</span> Resume builder{% if not premium %} <span style="color:#a5b4fc;font-size:11px">✦</span>{% endif %}</a>
       <a class="jb-nav {% if request.url.path.startswith('/preferences') %}active{% endif %}" href="/preferences"><span class="jb-ico">⚙</span> Preferences</a>
       <a class="jb-nav {% if request.url.path.startswith('/options') %}active{% endif %}" href="/options"><span class="jb-ico">☰</span> Options</a>
       {% if user.role == 'admin' %}

@@ -24,6 +24,7 @@ from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session as SessionType
 
+from app.config import settings
 from app.matching import compute_and_store_matches
 from app.models import Job, Match, Resume, Star, User
 from app.web.deps import add_flash, get_db, render, require_user
@@ -333,6 +334,16 @@ def dashboard(
     )
 
 
+@router.get("/premium")
+def premium_page(
+    request: Request,
+    user: User = Depends(require_user),
+):
+    """What Premium includes — and, while tiers are in testing, how to get it."""
+    return render(request, "premium.html", user=user,
+                  free_limit=settings.free_match_limit)
+
+
 @router.get("/matches")
 def matches(
     request: Request,
@@ -382,6 +393,20 @@ def matches(
         top_pick = rows[0]
         rows = rows[1:]
 
+    # Free plan: the "For you" board shows only the strongest matches (the
+    # hero counts toward the cap); the rest become a Premium teaser. The
+    # matcher itself is plan-blind — this is display-only, so upgrading
+    # reveals everything instantly.
+    from app.web.deps import is_premium
+
+    hidden_premium = 0
+    if tab == "foryou" and not is_premium(user):
+        limit = max(1, settings.free_match_limit)
+        visible = limit - 1 if top_pick else limit
+        hidden_premium = max(0, len(rows) - visible)
+        rows = rows[:visible]
+        counts["foryou"] = (1 if top_pick else 0) + len(rows)
+
     return render(
         request,
         "matches.html",
@@ -392,6 +417,7 @@ def matches(
         counts=counts,
         top_pick=top_pick,
         new_today=new_today,
+        hidden_premium=hidden_premium,
     )
 
 

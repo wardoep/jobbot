@@ -47,6 +47,13 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(255))
     # "admin" can invite others; "user" is a normal account.
     role: Mapped[str] = mapped_column(String(20), default="user")
+    # Tier: "free" | "premium". premium_until = NULL means no expiry (admin
+    # comped); a future billing system sets plan + premium_until on purchase
+    # and deps.is_premium() is the single place that interprets both.
+    plan: Mapped[str] = mapped_column(String(20), default="free", server_default="free")
+    premium_until: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     # Optional friendly name shown in the UI (collected at passwordless register).
     display_name: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
     # Filename of the user's uploaded avatar within uploads/<id>/ (NULL = none, we

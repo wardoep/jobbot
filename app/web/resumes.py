@@ -30,7 +30,10 @@ from app.config import PROJECT_ROOT, settings
 from app.llm import LLMError
 from app.models import Resume, User
 from app.resume_parse import SUPPORTED_EXTENSIONS, extract_text
-from app.web.deps import add_flash, get_db, render, require_user
+from app.web.deps import add_flash, get_db, is_premium, render, require_user
+
+# One message everywhere a free account hits a Premium wall.
+PREMIUM_MSG = "That's a Premium feature — see /premium for what's included."
 
 logger = logging.getLogger("jobbot.web.resumes")
 
@@ -63,7 +66,11 @@ def _parse_resume_bg(doc_id: int, regrade: bool = True) -> None:
             logger.info("parsed resume %s into parsed_json", doc_id)
         except LLMError as exc:
             logger.warning("resume %s parse failed: %s", doc_id, exc)
-        if regrade:
+        # Grading (the Resume-score insights) is a Premium feature — free
+        # accounts skip it, which also saves the AI budget. Parsing above is
+        # NOT gated: matching needs it for everyone.
+        owner = session.get(User, doc.user_id)
+        if regrade and is_premium(owner):
             _grade_doc(session, doc)
     finally:
         session.close()
@@ -214,6 +221,9 @@ def grade_doc_route(
     db: SessionType = Depends(get_db),
 ):
     """Kick off (re)grading for one of the user's resumes, in the background."""
+    if not is_premium(user):
+        add_flash(request, "Resume insights are a Premium feature.", "error")
+        return RedirectResponse("/premium", status_code=303)
     doc = db.query(Resume).filter_by(id=doc_id, user_id=user.id, kind="resume").first()
     if doc is None:
         add_flash(request, "That resume wasn't found.", "error")
@@ -445,6 +455,70 @@ def _ensure_paper(db: SessionType, doc) -> dict | None:
     return paper
 
 
+# The ghost preview a free account sees on /resumes/builder: a SAMPLE resume
+# (John Smith) run through the real fix-list + annotation pipeline, rendered
+# dimmed and inert under an upgrade card — so the page sells itself instead of
+# hiding behind text. Nothing here is the user's data and nothing can run.
+_DEMO_RESUME_TEXT = """John Smith
+Hartford, CT · john.smith@email.com · (860) 555-0143
+
+SUMMARY
+Experienced professional seeking new opportunities. Responsible for many projects and teams.
+
+EXPERIENCE
+Operations Coordinator — Acme Corp, Hartford, CT (2021 – Present)
+- Responsible for scheduling and vendor management
+- Helped with customer issues and reporting
+- Worked on process improvements across the team
+
+Office Assistant — Globex Inc, New Haven, CT (2018 – 2021)
+- Answered phones and managed calendars
+- Assisted with invoicing and data entry
+
+EDUCATION
+B.A. Communications — University of Connecticut, 2018
+
+SKILLS
+Microsoft Office, scheduling, communication, teamwork
+"""
+
+_DEMO_SUGGESTIONS = [
+    {"priority": "fix", "points": 9, "title": "Add measurable results",
+     "detail": "The bullets say what John did but never the impact — numbers "
+               "(team size, time saved, volume handled) are what recruiters scan for.",
+     "where": "Responsible for scheduling and vendor management"},
+    {"priority": "fix", "points": 7, "title": "Rewrite the summary",
+     "detail": "“Experienced professional seeking new opportunities” tells "
+               "employers nothing — name the strengths and years of experience.",
+     "where": "Experienced professional seeking new opportunities"},
+    {"priority": "improve", "points": 5, "title": "Start bullets with strong verbs",
+     "detail": "“Helped with” and “Worked on” undersell the work — "
+               "lead with verbs like coordinated, resolved, streamlined.",
+     "where": "Helped with customer issues and reporting"},
+    {"priority": "improve", "points": 4, "title": "Add role-specific keywords",
+     "detail": "Application systems scan for keywords from the posting — weave in "
+               "terms like vendor relations, CRM, and process documentation."},
+]
+
+
+def _builder_demo(request: Request, user: User):
+    """Render the builder in look-don't-touch mode for a free account."""
+    from types import SimpleNamespace
+
+    target = SimpleNamespace(
+        id=0, filename="John-Smith-Resume.pdf", look=None,
+        grade_json={"overall": 68, "suggestions": _DEMO_SUGGESTIONS},
+    )
+    return render(
+        request, "resume_builder.html", user=user,
+        demo=True, llm_ready=True,
+        docs=[target], target=target, fix_suggestions=_DEMO_SUGGESTIONS,
+        annotations=_annotate_resume(_DEMO_RESUME_TEXT, _DEMO_SUGGESTIONS),
+        paper=None, paper_json="", show_styled=False,
+        before=68, templates=BUILDER_TEMPLATES, selected="modern",
+    )
+
+
 @router.get("/builder")
 def builder_page(
     request: Request,
@@ -455,6 +529,8 @@ def builder_page(
     """The resume-builder page: tick the graded fixes to apply, add your own
     instructions, pick a look — then run, review every change + the new score,
     and (only if you choose) save the result as a new document."""
+    if not is_premium(user):
+        return _builder_demo(request, user)
     docs = (
         db.query(Resume).filter_by(user_id=user.id, kind="resume")
         .order_by(Resume.uploaded_at.desc()).all()
@@ -515,6 +591,8 @@ def builder_run(
     improved version. Nothing is stored here."""
     from app.llm_budget import try_spend
 
+    if not is_premium(user):
+        return render(request, "_builder_result.html", user=user, run_error=PREMIUM_MSG)
     if template not in _BUILDER_KEYS:
         template = "modern"
     doc = (
@@ -607,6 +685,8 @@ def builder_restyle(
 ):
     """HTMX: re-render the last run's paper in a different look — template
     styling is pure rendering, so switching is instant and costs no AI call."""
+    if not is_premium(user):
+        return render(request, "_resume_paper.html", user=user, error=PREMIUM_MSG)
     if template not in _BUILDER_KEYS:
         template = "modern"
     paper = _paper_from_json(paper_json)
@@ -625,6 +705,8 @@ def builder_set_look(
 ):
     """Remember the chosen look for THIS resume so 'your resume today' opens
     styled in it next time. A display preference only — content is untouched."""
+    if not is_premium(user):
+        return HTMLResponse(f'<span class="bld-savemsg">{PREMIUM_MSG}</span>')
     if template not in _BUILDER_KEYS:
         template = "modern"
     doc = (
@@ -651,6 +733,8 @@ def builder_download(
     """Download the resume that's currently previewed (the round-tripped paper)
     as a clean PDF or Word file — reuses the same ATS-safe builders as the
     application kit, so it never re-spends an AI call."""
+    if not is_premium(user):
+        return HTMLResponse(PREMIUM_MSG, status_code=403)
     fmt = fmt if fmt in ("pdf", "docx") else "pdf"
     paper = _paper_from_json(paper_json)
     if paper is None:
@@ -683,6 +767,8 @@ def builder_save(
     never touched). The run's fresh grade AND the chosen look are stored with it,
     so the Resume-score card shows the new score and re-opening this doc in the
     builder shows 'your resume today' already in the saved look."""
+    if not is_premium(user):
+        return HTMLResponse(f'<span class="bld-savemsg">{PREMIUM_MSG}</span>')
     if template not in _BUILDER_KEYS:
         template = "modern"
     paper = _paper_from_json(paper_json)

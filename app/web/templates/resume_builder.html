@@ -265,7 +265,7 @@
     <p class="eyebrow">Documents</p>
     <h1 class="sg" style="margin:0">Resume builder</h1>
   </div>
-  {% if target %}
+  {% if target and not demo %}
   <div class="bld-dl">
     <span class="bld-dl-lbl">Download this resume</span>
     <button type="button" class="btn small" onclick="downloadResume('pdf')">⬇ PDF</button>
@@ -291,6 +291,20 @@
     <a class="btn" href="/resumes">Go to Resumes</a>
   </div>
 {% else %}
+  {% if demo %}
+  {# Free plan: everything below is a SAMPLE (John Smith), dimmed and inert —
+     the floating card is the only thing you can click. #}
+  <div class="pv-lock">
+    <div class="pv-overlay"><div class="pv-card">
+      <div class="pv-star">✦</div>
+      <div class="pv-title sg">You're previewing the resume builder</div>
+      <p class="pv-sub">This is a sample resume. With Premium, JobBot does this to
+        <b>your</b> resume — one-tap AI fixes with every change explained, four
+        professional looks, and PDF&nbsp;/&nbsp;Word downloads.</p>
+      <a class="btn" href="/premium">See what Premium includes</a>
+    </div></div>
+    <div class="pv-dim" inert>
+  {% endif %}
   <form id="builder-form" class="builder-cols" onsubmit="return false">
     <input type="hidden" name="doc_id" value="{{ target.id }}">
     {# the current preview's structured paper — populated on load with this
@@ -474,6 +488,10 @@
       </div>
     </div>
   </form>
+  {% if demo %}
+    </div>
+  </div>
+  {% endif %}
 
   <script>
     function addBubble() {

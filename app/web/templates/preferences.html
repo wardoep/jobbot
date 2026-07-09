@@ -83,19 +83,23 @@
       <div class="pf-block">{% include "_keyword_panel.html" %}</div>
 
       <div class="pf-block">
-        <label class="pf-sec sg" for="exclude_keywords">Exclude keywords</label>
+        <label class="pf-sec sg" for="exclude_keywords">Exclude keywords
+          {% if not premium %}<a class="plan-chip" href="/premium">✦ Premium</a>{% endif %}</label>
         <p class="pf-hint">Hide any job that mentions these.</p>
         <input id="exclude_keywords" name="exclude_keywords" autocomplete="off"
                data-suggest="/preferences/skills" list="exclude_keywords-list"
+               {% if not premium %}disabled{% endif %}
                value="{{ (pref.exclude_keywords or []) | join(', ') }}" placeholder="e.g. clearance, unpaid">
         <datalist id="exclude_keywords-list"></datalist>
       </div>
 
       <div class="pf-block">
-        <label class="pf-sec sg" for="block_companies">Block companies</label>
+        <label class="pf-sec sg" for="block_companies">Block companies
+          {% if not premium %}<a class="plan-chip" href="/premium">✦ Premium</a>{% endif %}</label>
         <p class="pf-hint">Never show roles from these employers.</p>
         <input id="block_companies" name="block_companies" autocomplete="off"
                data-suggest="/preferences/companies" list="block_companies-list"
+               {% if not premium %}disabled{% endif %}
                value="{{ (pref.block_companies or []) | join(', ') }}" placeholder="e.g. Robert Half, Acme Corp">
         <datalist id="block_companies-list"></datalist>
       </div>
@@ -184,12 +188,13 @@
       <div class="pf-coltitle">Pay, quality &amp; alerts</div>
 
       <div class="pf-block">
-        <label class="pf-sec sg" for="salary_min">Minimum salary</label>
+        <label class="pf-sec sg" for="salary_min">Minimum salary
+          {% if not premium %}<a class="plan-chip" href="/premium">✦ Premium</a>{% endif %}</label>
         {% set salary_presets = [('','Any'),('40000','$40k+'),('60000','$60k+'),('80000','$80k+'),('100000','$100k+'),('120000','$120k+'),('150000','$150k+'),('200000','$200k+')] %}
         {% set cur_sal = (pref.salary_min|string) if (pref and pref.salary_min is not none) else '' %}
         {% set sal_ns = namespace(preset=false) %}
         {% for v, l in salary_presets %}{% if v == cur_sal %}{% set sal_ns.preset = true %}{% endif %}{% endfor %}
-        <select id="salary_min" name="salary_min">
+        <select id="salary_min" name="salary_min" {% if not premium %}disabled{% endif %}>
           {% for v, l in salary_presets %}<option value="{{ v }}" {% if cur_sal == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
           {% if cur_sal and not sal_ns.preset %}<option value="{{ cur_sal }}" selected>${{ pref.salary_min }}</option>{% endif %}
         </select>
@@ -219,8 +224,8 @@
 
       <div class="pf-block" style="border-top:1px solid var(--border);padding-top:6px;margin-top:4px">
         <label class="pf-toggle">
-          <span class="t-txt"><b>Exclude staffing agencies</b><span>Skip recruiter &amp; agency listings</span></span>
-          <span class="pf-switch"><input type="checkbox" name="exclude_staffing" value="1" {% if pref and pref.exclude_staffing %}checked{% endif %}><span class="track"></span></span>
+          <span class="t-txt"><b>Exclude staffing agencies{% if not premium %} <a class="plan-chip" href="/premium">✦ Premium</a>{% endif %}</b><span>Skip recruiter &amp; agency listings</span></span>
+          <span class="pf-switch"><input type="checkbox" name="exclude_staffing" value="1" {% if not premium %}disabled{% endif %} {% if pref and pref.exclude_staffing %}checked{% endif %}><span class="track"></span></span>
         </label>
       </div>
 

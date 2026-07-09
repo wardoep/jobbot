@@ -90,6 +90,24 @@ def require_admin(user: User = Depends(require_user)) -> User:
     return user
 
 
+# --- plan tiers -------------------------------------------------------------
+def is_premium(user: Optional[User]) -> bool:
+    """THE one place that decides free vs premium. Today: the plan column,
+    optionally time-limited (premium_until NULL = comped, no expiry). A future
+    billing system just sets plan/premium_until on purchase and everything —
+    routes and templates alike — follows this function."""
+    if user is None or (getattr(user, "plan", None) or "free") != "premium":
+        return False
+    until = getattr(user, "premium_until", None)
+    if until is None:
+        return True
+    from datetime import datetime, timezone
+
+    if until.tzinfo is None:  # SQLite hands back naive datetimes
+        until = until.replace(tzinfo=timezone.utc)
+    return until > datetime.now(timezone.utc)
+
+
 # --- flash messages (one-shot banners) -------------------------------------
 def add_flash(request: Request, message: str, category: str = "info") -> None:
     request.session.setdefault("_flashes", []).append({"m": message, "c": category})
@@ -110,6 +128,7 @@ def render(
     ctx = {
         "request": request,
         "user": user,
+        "premium": is_premium(user),   # every template can gate on this
         "flashes": _pop_flashes(request),
         "theme": request.cookies.get("theme") or "dark",
         "asset_v": asset_version(),

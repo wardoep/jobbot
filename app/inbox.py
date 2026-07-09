@@ -1,7 +1,7 @@
 """
-Inbox watcher: with the user's explicit consent (Options → Inbox watcher),
-JobBot reads their OWN mailbox over read-only IMAP and reacts to job-search
-email so they don't have to bookkeep by hand:
+Inbox watcher (a PREMIUM feature): with the user's explicit consent
+(Options → Inbox watcher), JobBot reads their OWN mailbox over read-only IMAP
+and reacts to job-search email so they don't have to bookkeep by hand:
 
   - application confirmation  -> mark that job Applied automatically
   - interview / offer         -> ping them right away (Telegram, else email)
@@ -360,6 +360,13 @@ class InboxReport:
 # ------------------------------------------------------------------ main scan
 def scan_user_inbox(session: SessionType, user: User) -> InboxReport:
     report = InboxReport(email=user.email)
+    # Premium-only: a free account is never scanned. Saved credentials are NOT
+    # erased (only Disconnect does that) — upgrading resumes where it left off.
+    from app.web.deps import is_premium
+
+    if not is_premium(user):
+        report.skipped_reason = "inbox watcher is a Premium feature"
+        return report
     if not user.inbox_enabled:
         report.skipped_reason = "inbox watcher not enabled"
         return report

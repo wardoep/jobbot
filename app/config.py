@@ -85,6 +85,8 @@ class Settings(BaseSettings):
     auto_kits_per_day: int = Field(default=3, validation_alias="JOBBOT_AUTO_KITS_PER_DAY")
     # Nudge with a drafted follow-up N days after "applied" (0 turns it off).
     followup_days: int = Field(default=7, validation_alias="JOBBOT_FOLLOWUP_DAYS")
+    # How many "For you" matches a FREE account sees (premium sees them all).
+    free_match_limit: int = Field(default=10, validation_alias="JOBBOT_FREE_MATCH_LIMIT")
 
     # --- LLM: resume tailoring + application Q&A (Phase 6) --------------------
     # The provider is swappable (the same idea as the matching scorer): pick the

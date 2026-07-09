@@ -1,6 +1,33 @@
 {% extends "base.html" %}
 {% block title %}Admin · JobBot{% endblock %}
 {% block body %}
+<style>
+  /* list sections: title + search on one line, paged tables, compact footer */
+  .adm-head { display:flex; align-items:flex-end; justify-content:space-between;
+              gap:12px; flex-wrap:wrap; margin:24px 0 10px; }
+  .adm-head h2 { margin:0; font-size:18px; }
+  .adm-head .eyebrow { margin-bottom:4px; }
+  .adm-search { position:relative; flex:none; }
+  .adm-search input {
+    width:250px; max-width:70vw; padding:9px 12px 9px 34px;
+    font-size:13px; border-radius:10px; min-height:0;
+  }
+  .adm-search::before {
+    content:"⌕"; position:absolute; left:11px; top:50%; transform:translateY(-54%);
+    color:var(--faint); font-size:16px; pointer-events:none;
+  }
+  .adm-foot { display:flex; align-items:center; justify-content:space-between;
+              gap:10px; padding:10px 16px; border-top:1px solid var(--border); }
+  .adm-foot[hidden] { display:none; }  /* author display beats the hidden attr otherwise */
+  .adm-foot .muted { font-size:12px; }
+  .adm-foot .pager { display:flex; gap:6px; }
+  .adm-foot .pager button {
+    padding:6px 12px; font-size:12.5px; border-radius:8px;
+    background:var(--ghost-bg); color:var(--ghost-fg); box-shadow:none;
+  }
+  .adm-foot .pager button:disabled { opacity:.4; cursor:default; }
+  .adm-empty td { text-align:center; color:var(--faint); padding:22px 16px; font-size:13px; }
+</style>
 
 <p class="eyebrow">Administration</p>
 <h1 class="sg">Admin</h1>
@@ -46,13 +73,21 @@
 </div>
 
 {# ---- invites ----------------------------------------------------------- #}
-<p class="eyebrow" style="margin-bottom:4px">Pending &amp; used</p>
-<h2 class="sg" style="font-size:18px;margin-top:0">Invites</h2>
+<div class="adm-head">
+  <div>
+    <p class="eyebrow">Pending &amp; used</p>
+    <h2 class="sg">Invites</h2>
+  </div>
+  {% if invites|length > 5 %}
+  <div class="adm-search"><input type="search" id="invites-search"
+       placeholder="Search invites…" autocomplete="off"></div>
+  {% endif %}
+</div>
 {% if not invites %}
   <div class="card muted">No invites yet.</div>
 {% else %}
-<div class="card" style="padding:0">
-  <table>
+<div class="card" style="padding:0;overflow-x:auto">
+  <table id="invites-table" style="min-width:520px">
     <thead><tr><th>For</th><th>Status</th><th>Registration link</th></tr></thead>
     <tbody>
       {% for inv in invites %}
@@ -67,24 +102,110 @@
       {% endfor %}
     </tbody>
   </table>
+  <div class="adm-foot" id="invites-foot" hidden>
+    <span class="muted" id="invites-count"></span>
+    <span class="pager">
+      <button type="button" id="invites-prev">← Prev</button>
+      <button type="button" id="invites-next">Next →</button>
+    </span>
+  </div>
 </div>
 {% endif %}
 
-{# ---- users ------------------------------------------------------------- #}
-<p class="eyebrow" style="margin-bottom:4px;margin-top:24px">Members</p>
-<h2 class="sg" style="font-size:18px;margin-top:0">Users</h2>
-<div class="card" style="padding:0">
-  <table>
-    <thead><tr><th>Email</th><th>Role</th><th>Joined</th></tr></thead>
+{# ---- accounts: role + plan management ----------------------------------- #}
+<div class="adm-head" id="accounts">
+  <div>
+    <p class="eyebrow">Members</p>
+    <h2 class="sg">Accounts</h2>
+    <p class="muted" style="font-size:12.5px;margin:4px 0 0">Premium is in testing — grant it
+      here for free. When billing exists, purchases will set the plan automatically.</p>
+  </div>
+  <div class="adm-search"><input type="search" id="accounts-search"
+       placeholder="Search by email, name, plan…" autocomplete="off"></div>
+</div>
+{# the accounts table is wide (role/plan/actions) — on narrow screens it
+   scrolls inside its own card instead of stretching the page #}
+<div class="card" style="padding:0;overflow-x:auto">
+  <table id="accounts-table" style="min-width:640px">
+    <thead><tr><th>Email</th><th>Role</th><th>Plan</th><th>Joined</th><th style="text-align:right">Actions</th></tr></thead>
     <tbody>
       {% for u in users %}
       <tr>
-        <td>{{ u.email }}</td>
-        <td>{{ u.role }}</td>
+        <td>{{ u.email }}{% if u.display_name %} <span class="muted">· {{ u.display_name }}</span>{% endif %}</td>
+        <td>{% if u.role == 'admin' %}<span class="plan-chip">◆ Admin</span>{% else %}<span class="plan-chip free">User</span>{% endif %}</td>
+        <td>{% if u.plan == 'premium' %}<span class="plan-chip">✦ Premium</span>{% else %}<span class="plan-chip free">Free</span>{% endif %}</td>
         <td class="muted">{{ u.created_at.strftime('%Y-%m-%d') if u.created_at else '' }}</td>
+        <td style="text-align:right;white-space:nowrap">
+          <form method="post" action="/admin/plan/{{ u.id }}" style="display:inline;margin:0">
+            <button type="submit" class="btn small {{ 'secondary' if u.plan == 'premium' }}">
+              {{ 'Remove Premium' if u.plan == 'premium' else '✦ Give Premium' }}</button>
+          </form>
+          {% if u.id != user.id %}
+            <form method="post" action="/admin/role/{{ u.id }}" style="display:inline;margin:0 0 0 6px"
+                  {% if u.role == 'admin' %}onsubmit="return confirm('Remove admin from {{ u.email }}?')"{% endif %}>
+              <button type="submit" class="btn small secondary">
+                {{ 'Remove admin' if u.role == 'admin' else 'Make admin' }}</button>
+            </form>
+          {% endif %}
+        </td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
+  <div class="adm-foot" id="accounts-foot" hidden>
+    <span class="muted" id="accounts-count"></span>
+    <span class="pager">
+      <button type="button" id="accounts-prev">← Prev</button>
+      <button type="button" id="accounts-next">Next →</button>
+    </span>
+  </div>
 </div>
+
+<script>
+  // Live search + pagination for the admin lists. Everything stays rendered
+  // in the page (no reloads) — we just show the slice that matches.
+  function pagedList(key, noun, pageSize) {
+    var table = document.getElementById(key + '-table');
+    if (!table) return;
+    var rows = Array.prototype.slice.call(table.querySelectorAll('tbody tr'));
+    var search = document.getElementById(key + '-search');
+    var foot = document.getElementById(key + '-foot');
+    var count = document.getElementById(key + '-count');
+    var prev = document.getElementById(key + '-prev');
+    var next = document.getElementById(key + '-next');
+    var page = 1;
+    var emptyRow = document.createElement('tr');
+    emptyRow.className = 'adm-empty';
+    emptyRow.innerHTML = '<td colspan="9">Nothing matches that search.</td>';
+    table.querySelector('tbody').appendChild(emptyRow);
+
+    function apply() {
+      var q = (search && search.value || '').trim().toLowerCase();
+      var hits = rows.filter(function (r) {
+        return !q || r.textContent.toLowerCase().indexOf(q) !== -1;
+      });
+      var pages = Math.max(1, Math.ceil(hits.length / pageSize));
+      if (page > pages) page = pages;
+      var from = (page - 1) * pageSize, to = page * pageSize;
+      rows.forEach(function (r) { r.style.display = 'none'; });
+      hits.slice(from, to).forEach(function (r) { r.style.display = ''; });
+      emptyRow.style.display = hits.length ? 'none' : '';
+      if (foot) {
+        foot.hidden = hits.length <= pageSize && !q;
+        if (count) count.textContent = hits.length
+          ? 'Showing ' + (from + 1) + '–' + Math.min(to, hits.length) + ' of '
+            + hits.length + ' ' + noun + (q ? ' matching “' + q + '”' : '')
+          : 'No ' + noun + ' match “' + q + '”';
+        if (prev) prev.disabled = page <= 1;
+        if (next) next.disabled = page >= pages;
+      }
+    }
+    if (search) search.addEventListener('input', function () { page = 1; apply(); });
+    if (prev) prev.addEventListener('click', function () { page--; apply(); });
+    if (next) next.addEventListener('click', function () { page++; apply(); });
+    apply();
+  }
+  pagedList('accounts', 'accounts', 8);
+  pagedList('invites', 'invites', 8);
+</script>
 {% endblock %}

@@ -27,7 +27,7 @@ from sqlalchemy.orm import Session as SessionType
 from app.alerts.sms import send_sms
 from app.config import PROJECT_ROOT
 from app.models import Preference, User
-from app.web.deps import add_flash, get_db, render, require_user
+from app.web.deps import add_flash, get_db, is_premium, render, require_user
 from app.web.login_codes import issue_code, recently_issued, verify_code
 from app.web.ratelimit import record_sms_send, sms_send_blocked
 
@@ -147,6 +147,10 @@ def inbox_connect(
     stored encrypted and can be disconnected (erased) any time."""
     from app.inbox import guess_imap_host, seal, test_connection
 
+    if not is_premium(user):
+        add_flash(request, "The inbox watcher is a Premium feature.", "error")
+        return RedirectResponse("/premium", status_code=303)
+
     addr = imap_email.strip()
     if not addr or not imap_password.strip():
         add_flash(request, "Enter the mailbox address and its app password.", "error")
@@ -190,6 +194,9 @@ def inbox_channels(
     db: SessionType = Depends(get_db),
 ):
     """Change how the inbox watcher pings an already-connected user."""
+    if not is_premium(user):
+        add_flash(request, "The inbox watcher is a Premium feature.", "error")
+        return RedirectResponse("/premium", status_code=303)
     err = _apply_ping_channels(request, user, ping_channels, ntfy_topic, discord_webhook)
     if err:
         db.rollback()

@@ -280,7 +280,8 @@
     </div>
   {%- endmacro -%}
   <div class="card" id="inbox">
-    <div class="opt-h sg" style="margin-bottom:6px">Inbox watcher</div>
+    <div class="opt-h sg" style="margin-bottom:6px">Inbox watcher
+      {% if not premium %}<a class="plan-chip" href="/premium">✦ Premium</a>{% endif %}</div>
 
     <div class="opt-desc">JobBot watches your own inbox for replies to your applications
       — so you don't have to bookkeep anything.</div>
@@ -296,7 +297,41 @@
       · only job-related messages are read · your password is stored encrypted
       · Disconnect erases it instantly.</div>
 
-    {% if inbox_connected %}
+    {% if not premium and inbox_connected %}
+      <div class="ibx-premium">
+        <span><b style="color:var(--text)">Paused.</b> The inbox watcher is now part of
+          Premium — {{ inbox_email }} stays saved but isn't being checked. Upgrade to
+          resume, or disconnect to erase the saved login.</span>
+        <form method="post" action="/options/inbox/disconnect" style="flex:none;margin:0">
+          <button type="submit" class="btn secondary small">Disconnect</button>
+        </form>
+      </div>
+    {% elif not premium %}
+      {# Ghost preview: the real connect form with sample filler, dimmed and
+         inert — the floating card is the only clickable thing. #}
+      <div class="pv-lock">
+        <div class="pv-overlay"><div class="pv-card">
+          <div class="pv-star">✦</div>
+          <div class="pv-title sg">The inbox watcher is part of Premium</div>
+          <p class="pv-sub">Connect your email (read-only) and JobBot does this
+            bookkeeping for you — jobs marked Applied automatically, a ping the moment
+            an interview, offer or rejection lands.</p>
+          <a class="btn" href="/premium">See what Premium includes</a>
+        </div></div>
+        <div class="pv-dim" inert>
+          <form>
+            <label class="opt-fieldlabel sg">Your email address</label>
+            <input type="email" value="john.smith@gmail.com" readonly tabindex="-1">
+            <div class="opt-note" style="margin-top:5px">We work out the mail server from your
+              address automatically.</div>
+            <label class="opt-fieldlabel sg" style="margin-top:12px">App password</label>
+            <input type="password" value="abcdefghijklmnop" readonly tabindex="-1">
+            {{ ping_picker() }}
+            <button type="button" class="btn" style="margin-top:16px">Connect my inbox</button>
+          </form>
+        </div>
+      </div>
+    {% elif inbox_connected %}
       <div class="opt-row" style="align-items:flex-start">
         <div>
           <div class="opt-label sg">{{ inbox_email }}</div>

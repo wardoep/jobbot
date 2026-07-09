@@ -299,10 +299,16 @@ def save_preferences(
     pref.work_types = [w for w in work_types if w] or None  # single-select dropdown
     pref.posted_within_days = _int_or_none(posted_within_days)
     pref.keywords = _split_keywords(keywords) or None
-    pref.exclude_keywords = _split_keywords(exclude_keywords) or None
-    pref.block_companies = _split_keywords(block_companies) or None
-    pref.exclude_staffing = bool(exclude_staffing)
-    pref.salary_min = _int_or_none(salary_min)
+    # Power filters are Premium-only to EDIT: on a free account the posted
+    # fields are ignored and whatever is already stored keeps working (a
+    # downgrade never silently changes someone's matching).
+    from app.web.deps import is_premium
+
+    if is_premium(user):
+        pref.exclude_keywords = _split_keywords(exclude_keywords) or None
+        pref.block_companies = _split_keywords(block_companies) or None
+        pref.exclude_staffing = bool(exclude_staffing)
+        pref.salary_min = _int_or_none(salary_min)
     pref.employment_type = employment_type.strip() or None
     pref.seniority = seniority.strip() or None
     pref.match_threshold = _int_or_none(match_threshold) or 0

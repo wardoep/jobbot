@@ -79,8 +79,10 @@
           {% if d.uploaded_at %} · uploaded {{ d.uploaded_at.strftime('%b %d, %Y') }}{% endif %}
         </div>
       </div>
-      {# score pill (graded resumes) #}
-      {% if d.kind == 'resume' and d.grade_json %}
+      {# score pill (graded resumes) — free accounts see a Premium chip instead #}
+      {% if d.kind == 'resume' and not premium %}
+        <a class="plan-chip" href="/premium" title="Resume scoring is a Premium feature">✦ Score</a>
+      {% elif d.kind == 'resume' and d.grade_json %}
         {% set ov = d.grade_json.overall %}
         <a class="rs-scorepill" href="/resumes?score={{ d.id }}#resume-score">
           <span class="dot {{ 'g' if ov >= 80 else 'b' if ov >= 60 else 'o' }}"></span>Score {{ ov }}
@@ -96,7 +98,87 @@
 {% endif %}
 
 {# ---- RESUME SCORE: AI grade + how to raise it --------------------------- #}
-{% if score_docs %}
+{% if score_docs and not premium %}
+{# Free plan: the REAL score card, filled with a sample grade (John Smith) and
+   shown dimmed + inert under one upgrade card — a ghost preview, not a wall. #}
+{% set demo_sugs = [
+  {'priority': 'fix', 'points': 9, 'title': 'Add measurable results',
+   'detail': 'The bullets say what John did but never the impact — numbers are what recruiters scan for.'},
+  {'priority': 'fix', 'points': 7, 'title': 'Rewrite the summary',
+   'detail': '“Experienced professional seeking new opportunities” tells employers nothing.'},
+  {'priority': 'improve', 'points': 5, 'title': 'Start bullets with strong verbs',
+   'detail': '“Helped with” and “Worked on” undersell the work.'},
+  {'priority': 'improve', 'points': 4, 'title': 'Add role-specific keywords',
+   'detail': 'Application systems scan for keywords from the posting.'},
+  {'priority': 'good', 'points': 0, 'title': 'Clean one-page layout',
+   'detail': 'Easy to skim — no tables or graphics that confuse application systems.'},
+] %}
+<h2 class="sg" id="resume-score">Resume score</h2>
+<div class="pv-lock">
+  <div class="pv-overlay"><div class="pv-card">
+    <div class="pv-star">✦</div>
+    <div class="pv-title sg">This is a sample score</div>
+    <p class="pv-sub">With Premium, <b>your</b> resume gets scored 0–100 by the same AI
+      that scores your matches — with honest, prioritized fixes to raise it.</p>
+    <a class="btn" href="/premium">See what Premium includes</a>
+  </div></div>
+  <div class="pv-dim" inert>
+  <div class="card rs-card">
+    <div class="rs-top">
+      <div class="hm-ring rs-ring">
+        <svg viewBox="0 0 120 120" aria-hidden="true">
+          <defs>
+            <linearGradient id="hmRingGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" style="stop-color:var(--blue)"/>
+              <stop offset="100%" style="stop-color:var(--cyan)"/>
+            </linearGradient>
+          </defs>
+          <circle class="ringtrack" cx="60" cy="60" r="54"/>
+          <circle class="ringval" cx="60" cy="60" r="54"
+                  stroke-dasharray="339.292"
+                  stroke-dashoffset="{{ '%.2f'|format(339.292 * (1 - 68 / 100)) }}"/>
+        </svg>
+        <span class="mid"><span><b>68</b><small>OF 100</small></span></span>
+      </div>
+      <div class="rs-headwrap">
+        <div class="rs-headline sg">A solid start — a few fixes away from strong</div>
+        <p class="rs-sub">Scored against the roles JobBot matches you with.
+          The fixes below could add <b class="rs-gain">+25 pts</b>.</p>
+        <div class="rs-cats">
+          {% for label, v in [('Impact & metrics', 13), ('ATS & keywords', 18),
+                              ('Structure & format', 21), ('Length & clarity', 16)] %}
+            <div class="rs-cat">
+              <div class="rs-cat-line"><span>{{ label }}</span><b>{{ v }} / 25</b></div>
+              <div class="rs-bar"><i class="{{ 'g' if v >= 20 else 'b' if v >= 13 else 'o' }}" style="width:{{ (v / 25 * 100) | int }}%"></i></div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="rs-eyebrow">How to raise it</div>
+    <div class="rs-list">
+      {% for s in demo_sugs %}
+        <div class="rs-row">
+          <span class="rs-chip {{ s.priority }}">{{ {'fix': 'Fix', 'improve': 'Improve', 'good': 'Good'}[s.priority] }}</span>
+          <div class="rs-body">
+            <div class="rs-title">{{ s.title }}</div>
+            <div class="rs-detail">{{ s.detail }}</div>
+          </div>
+          {% if s.priority == 'good' %}<span class="rs-pts ok">✓</span>
+          {% elif s.points %}<span class="rs-pts">+{{ s.points }} pts</span>{% endif %}
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="rs-foot">
+      <a class="btn" href="/resumes/builder">✨ Fix these in the builder</a>
+      <span class="rs-note">Your score refreshes each time you upload a new version.</span>
+    </div>
+  </div>
+  </div>
+</div>
+{% elif score_docs %}
 <h2 class="sg" id="resume-score">Resume score</h2>
 <div class="card rs-card">
   {% if score_docs|length > 1 %}

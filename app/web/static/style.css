@@ -1522,3 +1522,62 @@ tbody tr:hover { background: var(--inset); }
 @media (max-width: 760px) {
   .jb-aside nav { display: flex; flex-direction: row; align-items: center; gap: 4px; }
 }
+
+/* ============================================================ PLAN TIERS
+   (2026-07-09) Free vs Premium test: the matches-board teaser card shown to
+   free accounts in place of their hidden matches, plus small ✦ chips. */
+.mg-premium {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  text-align:center; gap:6px; text-decoration:none; cursor:pointer;
+  border:1.5px dashed var(--info-bd); background:var(--info-bg);
+}
+.mg-premium:hover { text-decoration:none; border-color:var(--blue); }
+.mgp-star { font-size:26px; color:var(--blue); line-height:1; }
+.mgp-n { font-family:var(--font-display); font-weight:800; font-size:17px; color:var(--text); }
+.mgp-sub { font-size:12.5px; color:var(--text-2); line-height:1.5; max-width:230px; }
+.mgp-cta {
+  margin-top:6px; font-family:var(--font-display); font-weight:700; font-size:12.5px;
+  color:var(--blue);
+}
+.plan-chip {
+  display:inline-flex; align-items:center; gap:5px; border-radius:999px; padding:3px 10px;
+  font-family:var(--font-display); font-size:11px; font-weight:800; letter-spacing:.02em;
+  background:var(--info-bg); color:var(--blue); border:1px solid var(--info-bd);
+  white-space:nowrap; text-decoration:none;
+}
+.plan-chip.free { background:var(--ghost-bg); color:var(--ghost-fg); border-color:var(--border); }
+.plan-chip:hover { text-decoration:none; }
+/* Options → Inbox watcher: the strip a free account sees instead of the form. */
+.ibx-premium {
+  display:flex; align-items:center; justify-content:space-between; gap:14px;
+  margin-top:14px; padding:13px 16px; border-radius:12px;
+  border:1.5px dashed var(--info-bd); background:var(--info-bg);
+}
+.ibx-premium > span { font-size:13px; color:var(--text-2); line-height:1.55; }
+/* Ghost previews: free accounts see the REAL feature UI filled with sample
+   data, dimmed and inert, with one floating "this is Premium" card on top.
+   Usage: .pv-lock > (.pv-overlay > .pv-card) + (.pv-dim[inert] > the UI). */
+.pv-lock { position:relative; }
+.pv-dim {
+  opacity:.45; filter:grayscale(.5) saturate(.7);
+  pointer-events:none; user-select:none;
+}
+.pv-overlay {
+  position:absolute; inset:0; z-index:6; pointer-events:none;
+  display:flex; align-items:flex-start; justify-content:center;
+}
+.pv-card {
+  pointer-events:auto; position:sticky; top:26vh; margin:70px 16px;
+  max-width:390px; text-align:center;
+  background:var(--surface); border:1.5px solid var(--info-bd); border-radius:16px;
+  padding:22px 26px 24px; box-shadow:0 28px 70px -26px rgba(0,0,0,.6);
+}
+.pv-star { font-size:30px; color:var(--blue); line-height:1; }
+.pv-title {
+  font-family:var(--font-display); font-weight:700; font-size:15.5px;
+  color:var(--text); margin-top:9px;
+}
+.pv-sub { font-size:12.5px; color:var(--text-2); line-height:1.6; margin:7px 0 14px; }
+.pv-sub b { color:var(--text); }
+/* Matches board: trailing sample cards behind the "N more" CTA card. */
+.mg-card.pv-ghost { pointer-events:none; user-select:none; opacity:.45; filter:grayscale(.5) saturate(.7); }

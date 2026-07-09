@@ -157,6 +157,35 @@
     <div class="mt-eyebrow sg">Your queue · {{ rows|length }}</div>
     <div class="mg-grid">
       {% for r in rows %}{{ card(r, tab, 'foryou') }}{% endfor %}
+      {% if hidden_premium %}
+        <a class="mg-card mg-premium" href="/premium">
+          <div class="mgp-star">✦</div>
+          <div class="mgp-n">{{ hidden_premium }} more match{{ 'es' if hidden_premium != 1 }}</div>
+          <div class="mgp-sub">Free shows your top {{ (rows|length) + (1 if top_pick else 0) }}.
+            Premium shows every match JobBot finds for you.</div>
+          <span class="mgp-cta">See Premium →</span>
+        </a>
+        {# A taste of what's behind the cap: SAMPLE cards (never the user's real
+           hidden matches — those stay server-side), dimmed and unclickable. #}
+        {% for t, co, loc, sal, sc, av in [
+            ('Senior Operations Manager', 'Acme Corp', 'Hybrid · Hartford, CT', '$95k – $120k', 91, 0),
+            ('Program Coordinator', 'Globex', 'Remote', '$72k – $88k', 87, 2),
+            ('Client Services Lead', 'Initech', 'New York, NY', '$85k – $102k', 84, 4),
+          ][:([hidden_premium, 3] | min)] %}
+          <div class="mg-card pv-ghost" aria-hidden="true">
+            <div class="mg-top">
+              <span class="mg-ava c{{ av }} lg"><span class="ini">{{ co[0] }}</span></span>
+              <div class="mg-top-right">
+                <div class="mt-ring" style="--p:{{ sc }}"><span>{{ sc }}</span></div>
+              </div>
+            </div>
+            <div class="mg-title sg">{{ t }}</div>
+            <div class="mg-co">{{ co }}</div>
+            <div class="mg-loc">{{ loc }}</div>
+            <div class="mg-foot"><span class="mt-sal">{{ sal }}</span><div class="mg-acts"></div></div>
+          </div>
+        {% endfor %}
+      {% endif %}
     </div>
   {% elif not top_pick %}
     <div class="mt-empty">

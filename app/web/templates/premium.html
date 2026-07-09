@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Premium · JobBot{% endblock %}
+{% block main_class %} hm-page{% endblock %}
+{% block body %}
+<style>
+  .pm-wrap { max-width: 660px; margin: 0 auto; }
+  .pm-hero { text-align: center; padding: 8px 0 6px; }
+  .pm-star { font-size: 40px; color: var(--blue); line-height: 1; }
+  .pm-hero h1 { margin: 10px 0 6px; }
+  .pm-hero .sub { max-width: 460px; margin: 0 auto; }
+  .pm-list { display: flex; flex-direction: column; gap: 14px; margin-top: 6px; }
+  .pm-row { display: flex; gap: 14px; align-items: flex-start; }
+  .pm-ico {
+    flex: none; width: 40px; height: 40px; border-radius: 12px;
+    background: var(--info-bg); border: 1px solid var(--info-bd);
+    display: grid; place-items: center; font-size: 19px;
+  }
+  .pm-row b { display: block; font-family: var(--font-display); font-size: 14.5px; color: var(--text); }
+  .pm-row span { font-size: 13px; color: var(--text-2); line-height: 1.55; }
+  .pm-note {
+    margin-top: 18px; border: 1.5px dashed var(--info-bd); background: var(--info-bg);
+    border-radius: 12px; padding: 13px 16px; font-size: 13px; color: var(--text-2); line-height: 1.6;
+  }
+</style>
+
+<div class="pm-wrap">
+  <div class="pm-hero">
+    <div class="pm-star">✦</div>
+    <h1 class="sg">JobBot Premium</h1>
+    <p class="sub">The free plan finds you jobs. Premium turns JobBot into your whole
+      application toolkit:</p>
+  </div>
+
+  <div class="card">
+    <div class="pm-list">
+      <div class="pm-row"><div class="pm-ico">✎</div>
+        <div><b>Resume builder</b>
+        <span>One-tap AI fixes with a change log, four professional looks, instant
+        restyling, and PDF/Word downloads.</span></div></div>
+      <div class="pm-row"><div class="pm-ico">📊</div>
+        <div><b>Resume insights</b>
+        <span>Your resume scored 0–100 by the same AI that scores your matches —
+        with prioritized, honest suggestions to raise it.</span></div></div>
+      <div class="pm-row"><div class="pm-ico">▦</div>
+        <div><b>Every match</b>
+        <span>Free shows your top {{ free_limit or 10 }} matches. Premium shows everything
+        JobBot finds, updated all day.</span></div></div>
+      <div class="pm-row"><div class="pm-ico">⚙</div>
+        <div><b>Power preferences</b>
+        <span>Exclude keywords, block companies, skip staffing agencies, and set a
+        minimum salary.</span></div></div>
+      <div class="pm-row"><div class="pm-ico">📬</div>
+        <div><b>Inbox watcher</b>
+        <span>Connect your email (read-only) and JobBot marks jobs Applied from
+        confirmation emails and pings you the moment an interview, offer or
+        rejection lands.</span></div></div>
+    </div>
+  </div>
+
+  <div class="pm-note">
+    <b style="color:var(--text)">Premium is in testing.</b> There's nothing to buy yet —
+    accounts are upgraded individually while we trial it. Everything you already use
+    stays free: matching, the daily email, Telegram pings and application kits.
+  </div>
+</div>
+{% endblock %}

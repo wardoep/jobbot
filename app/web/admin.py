@@ -58,6 +58,65 @@ def admin_home(
     )
 
 
+@router.post("/plan/{user_id}")
+def toggle_plan(
+    request: Request,
+    user_id: int,
+    admin: User = Depends(require_admin),
+    db: SessionType = Depends(get_db),
+):
+    """Flip an account between free and premium. While tiers are in testing
+    there's no billing — an admin grant is a comp with no expiry. A future
+    payment system will set plan/premium_until itself on purchase."""
+    target = db.get(User, user_id)
+    if target is None:
+        add_flash(request, "That account doesn't exist.", "error")
+        return RedirectResponse("/admin", status_code=303)
+    if target.plan == "premium":
+        target.plan = "free"
+        target.premium_until = None
+        msg = f"{target.email} is now on the free plan."
+    else:
+        target.plan = "premium"
+        target.premium_until = None  # comped: no expiry until billing exists
+        msg = f"{target.email} now has Premium. ✦"
+    db.commit()
+    add_flash(request, msg, "success")
+    return RedirectResponse("/admin#accounts", status_code=303)
+
+
+@router.post("/role/{user_id}")
+def toggle_role(
+    request: Request,
+    user_id: int,
+    admin: User = Depends(require_admin),
+    db: SessionType = Depends(get_db),
+):
+    """Promote a user to admin or demote an admin back to user. Two guards
+    keep the site administrable: you can't change your own role, and the last
+    remaining admin can't be demoted."""
+    target = db.get(User, user_id)
+    if target is None:
+        add_flash(request, "That account doesn't exist.", "error")
+        return RedirectResponse("/admin", status_code=303)
+    if target.id == admin.id:
+        add_flash(request, "You can't change your own role.", "error")
+        return RedirectResponse("/admin#accounts", status_code=303)
+    if target.role == "admin":
+        admins = db.query(User).filter_by(role="admin").count()
+        if admins <= 1:
+            add_flash(request, "There must always be at least one admin.", "error")
+            return RedirectResponse("/admin#accounts", status_code=303)
+        target.role = "user"
+        msg = f"{target.email} is no longer an admin."
+    else:
+        target.role = "admin"
+        msg = f"{target.email} is now an admin."
+    db.commit()
+    add_flash(request, msg, "success")
+    return RedirectResponse("/admin#accounts", status_code=303)
+
+
 @router.post("/invite")
 def create_invite(
     request: Request,
