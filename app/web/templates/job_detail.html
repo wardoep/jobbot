@@ -17,7 +17,9 @@
 {# 2. Header card --------------------------------------------------------- #}
 <div class="card" style="display:flex;gap:18px;align-items:center;flex-wrap:wrap">
   {{ company_pic(job.id % 6, (job.company[0]|upper) if job.company else (job.title[0]|upper if job.title else '?'), job.company, job.url) }}
-  <div style="flex:1;min-width:0">
+  {# min-width floor (not 0): on phones the row wraps score+star below instead
+     of squeezing the title into a sliver column #}
+  <div style="flex:1;min-width:min(220px,100%)">
     <h1 class="sg" style="font-size:23px;font-weight:700;letter-spacing:-.02em;line-height:1.2;margin:0 0 4px">
       {% if job.url %}<a href="{{ job.url }}" target="_blank" rel="noopener" style="color:var(--text)">{{ job.title }}</a>
       {% else %}{{ job.title }}{% endif %}
@@ -39,7 +41,7 @@
 {% if job.source or job.url %}
 <div class="card" style="display:flex;align-items:center;gap:13px;flex-wrap:wrap">
   <div class="sg" style="width:38px;height:38px;flex:none;border-radius:10px;background:var(--ghost-bg);color:var(--ghost-fg);display:grid;place-items:center;font-size:17px">↗</div>
-  <div style="flex:1;min-width:0">
+  <div style="flex:1;min-width:min(170px,100%)">
     <div class="muted" style="font-size:12px;font-weight:600">{% if job.source %}Found via {{ job.source }}{% else %}Original posting{% endif %}</div>
     <div class="sg" style="font-weight:700;font-size:14px">View the original posting</div>
   </div>

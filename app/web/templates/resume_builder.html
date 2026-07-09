@@ -3,26 +3,83 @@
 {% block main_class %} hm-page bld-lock{% endblock %}
 {% block body %}
 <style>
-  /* ------- layout: 3 columns on desktop, viewport-locked (no page scroll) --
-     left = controls · CENTER = the whole resume, readable · right = results.
-     The paper flows as two side-by-side columns (a "two-page spread") so all
-     of it fits on screen at full text size — no zooming, no shrinking to a
-     thumbnail. Below 1100px it stacks and scrolls normally. */
+  /* ------- layout: adaptive by window width --------------------------------
+     <1200px      the three sections stack full-width; the page scrolls.
+     1200-1479px  TWO columns: one real rail (controls, results below it) and
+                  the resume beside it at full size — two-page spread when it
+                  has >=560px of room; the page scrolls, run button sticky.
+     >=1480px     THREE columns (controls 300 / resume / results 310), page
+                  locked to the viewport with the spread scaled to the fold.
+     In every band the resume is NEVER wider than its own column, so it can't
+     crowd the panels beside it. */
   .builder-cols { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 18px; }
   .builder-left { width: 270px; flex: none; }
-  .builder-paperrail { flex: 1 1 100%; min-width: 0; }   /* center: the resume */
-  .builder-mid { width: 290px; flex: none; }             /* right: the results */
-  @media (max-width: 780px) { .builder-left, .builder-mid { width: 100%; } }
-  @media (min-width: 1100px) {
-    /* viewport lock: full-width canvas, trimmed padding + compact header so
-       the columns (sized by JS) end exactly at the fold — no page scroll */
-    .jb-main.bld-lock { max-width: 1720px; padding-bottom: 12px; }
+  .builder-paperrail { flex: 1 1 100%; min-width: 0; }   /* the resume */
+  .builder-mid { width: 290px; flex: none; }             /* the results */
+  @media (max-width: 1199px) { .builder-left, .builder-mid { width: 100%; } }
+
+  /* ---- shared by both desktop bands ---- */
+  @media (min-width: 1200px) {
+    .jb-main.bld-lock { max-width: 1720px; }
     .jb-main.bld-lock .bld-backp { display: none; }  /* sidebar nav covers it */
+    .bld-runwrap {
+      position: sticky; bottom: 0; margin-top: 6px; padding: 12px 0 2px;
+      background: linear-gradient(180deg, transparent, var(--bg) 30%);
+    }
+    /* two-page-spread flow inside the paper — ONLY when the JS measured enough
+       rail width and set .spread; a narrow rail stays single-column at full
+       size and scrolls instead. Big boxed sections are allowed to continue
+       across the column break (side borders carry through) — forcing them
+       whole would leave one column towering over the other. */
+    .builder-paperrail.spread .pflow { columns: 2; column-gap: 26px; }
+    .pent { break-inside: avoid; }                /* a job entry never splits */
+    .phead, .bld-sech { break-after: avoid; }     /* headings stick to content */
+    .bld-addbox, .bld-docmark { break-inside: avoid; }
+    #paper-pane > div { padding: 20px 22px !important; }  /* tighter paper edges */
+    /* compact print for the before-view so a full spread fits at readable size
+       (prefixed selectors so they beat the base .bld-* rules further down);
+       single-column mode keeps the base sizes — it scrolls, so no squeezing */
+    .builder-paperrail.spread .bld-paper { font-size: 11px; line-height: 1.45; }
+    .builder-paperrail.spread .bld-sec + .bld-sec { margin-top: 9px; }
+    .builder-paperrail.spread .bld-sec.boxed { padding: 12px 10px 8px; margin: 14px -4px 6px; }
+    .builder-paperrail.spread .bld-sech { font-size: 10px; margin-bottom: 3px; }
+    .builder-paperrail.spread .bld-docmark { padding: 6px 9px; margin-bottom: 10px; font-size: 11px; }
+    .builder-paperrail.spread .bld-addbox { padding: 9px 10px 8px; margin-top: 12px; font-size: 11px; }
+    .builder-paperrail.spread .bld-boxtag { font-size: 9.5px; padding: 2px 8px; }
+    /* narrow side rails: chip + points side-by-side with the text mashed the
+       fix titles into a sliver — give the text its own full-width line */
+    .bld-fix { flex-wrap: wrap; align-items: center; row-gap: 5px; }
+    .bld-fix input { margin-top: 0; }
+    .bld-fix .rs-chip { margin-top: 0; }
+    .bld-fix .bld-fix-pts { margin-left: auto; margin-top: 0; }
+    .bld-fix .bld-fix-body { flex: 1 1 100%; order: 5; }
+    .builder-mid .rs-row { flex-wrap: wrap; row-gap: 5px; }
+    .builder-mid .rs-row .rs-pts { margin-left: auto; }
+    .builder-mid .rs-row .rs-chip ~ .rs-body { flex: 1 1 100%; order: 5; }
+  }
+
+  /* ---- 1200-1479px: two columns, page scrolls normally ---- */
+  @media (min-width: 1200px) and (max-width: 1479px) {
+    .builder-cols {
+      display: grid; gap: 16px 22px; align-items: start;
+      grid-template-columns: minmax(280px, 330px) minmax(0, 1fr);
+      grid-template-areas: "left paper" "mid paper";
+    }
+    .builder-left { grid-area: left; width: auto; }
+    .builder-mid { grid-area: mid; width: auto; }
+    .builder-paperrail { grid-area: paper; display: flex; flex-direction: column; align-items: center; }
+  }
+
+  /* ---- >=1480px: three columns, viewport-locked (no page scroll) ---- */
+  @media (min-width: 1480px) {
+    .jb-main.bld-lock { padding-bottom: 12px; }
     /* compact header: the workspace explains itself — every pixel goes to the paper */
     .jb-main.bld-lock > .eyebrow { display: none; }
     .jb-main.bld-lock h1 { font-size: 24px; margin: 0 0 6px; }
     .jb-main.bld-lock > .sub { display: none; }
     .builder-cols { flex-wrap: nowrap; margin-top: 14px; }  /* JS sets the locked height */
+    .builder-left { width: 300px; }
+    .builder-mid { width: 310px; }
     .builder-paperrail { flex: 1; }
     .builder-left, .builder-mid {
       overflow-y: auto; height: 100%; padding-right: 3px;
@@ -32,31 +89,10 @@
       height: 100%; overflow: hidden;
       display: flex; flex-direction: column; align-items: center;
     }
-    .bld-runwrap {
-      position: sticky; bottom: 0; margin-top: 6px; padding: 12px 0 2px;
-      background: linear-gradient(180deg, transparent, var(--bg) 30%);
-    }
-    /* two-page-spread flow inside the paper. Big boxed sections are allowed to
-       continue across the column break (side borders carry through) — forcing
-       them whole would leave one column towering over the other. */
-    .pflow { columns: 2; column-gap: 26px; }
-    .pent { break-inside: avoid; }                /* a job entry never splits */
-    .phead, .bld-sech { break-after: avoid; }     /* headings stick to content */
-    .bld-addbox, .bld-docmark { break-inside: avoid; }
-    #paper-pane > div { padding: 20px 22px !important; }  /* tighter paper edges */
-    /* compact print for the before-view so a full page fits at readable size
-       (prefixed selectors so they beat the base .bld-* rules further down) */
-    .builder-paperrail .bld-paper { font-size: 11px; line-height: 1.45; }
-    .builder-paperrail .bld-sec + .bld-sec { margin-top: 9px; }
-    .builder-paperrail .bld-sec.boxed { padding: 12px 10px 8px; margin: 14px -4px 6px; }
-    .builder-paperrail .bld-sech { font-size: 10px; margin-bottom: 3px; }
-    .builder-paperrail .bld-docmark { padding: 6px 9px; margin-bottom: 10px; font-size: 11px; }
-    .builder-paperrail .bld-addbox { padding: 9px 10px 8px; margin-top: 12px; font-size: 11px; }
-    .builder-paperrail .bld-boxtag { font-size: 9.5px; padding: 2px 8px; }
   }
-  #paper-fit { overflow: hidden; border-radius: 10px; }
+  #paper-fit { overflow: hidden; border-radius: 10px; scrollbar-width: thin; }
   #paper-zoom { transform-origin: top left; }
-  @media (max-width: 1099px) {
+  @media (max-width: 1199px) {
     #paper-fit { width: auto !important; height: auto !important; overflow: visible; }
     #paper-zoom { width: auto !important; transform: none !important; margin: 0 !important; }
   }
@@ -390,8 +426,8 @@
         {% if annotations %}
           <div class="bld-eyebrow">Your resume today{% if before is not none %} · scored {{ before }} / 100{% endif %}</div>
           {% if annotations.any %}
-            <p class="bld-hint" style="margin:2px 0 10px">The whole page, shown as a two-column
-              spread — the numbered boxes are the fixes on the left, with their points.</p>
+            <p class="bld-hint" style="margin:2px 0 10px">Your resume with its problem spots
+              boxed — each number matches a fix in step 1, with its points.</p>
           {% elif not fix_suggestions %}
             <p class="bld-hint" style="margin:2px 0 10px">The resume the builder starts from —
               <a href="/resumes#resume-score">grade it</a> to see its problem spots boxed here.</p>
@@ -488,14 +524,20 @@
       });
     });
 
-    // ---- desktop layout: lock the page to the viewport and scale the resume
-    // so ALL of it is visible with no scrolling; click the page to zoom. ----
-    var DESKTOP = function () { return window.innerWidth >= 1100; };
+    // ---- adaptive layout, three bands (must match the CSS breakpoints):
+    // stacked (<1200) · two-column, page scrolls (1200-1479) · three-column
+    // viewport-locked with the spread scaled to the fold (>=1480). In every
+    // band the paper is sized to its own column, never wider. ----
+    var DESKTOP = function () { return window.innerWidth >= 1200; };
+    var LOCKED = function () { return window.innerWidth >= 1480; };
     function layoutBuilder() {
       var cols = document.getElementById('builder-form');
       if (!cols) return;
-      if (DESKTOP()) {
-        var h = window.innerHeight - cols.getBoundingClientRect().top - 14;
+      if (LOCKED()) {
+        // rect.top + scrollY = distance from the document top, so the lock
+        // height is right even if the page was scrolled when we crossed 1480px
+        var top = cols.getBoundingClientRect().top + window.scrollY;
+        var h = window.innerHeight - top - 14;
         cols.style.height = Math.max(430, h) + 'px';
       } else {
         cols.style.height = '';
@@ -506,24 +548,41 @@
       var zoom = document.getElementById('paper-zoom');
       var railWrap = document.getElementById('paper-rail');
       var railBox = document.querySelector('.builder-paperrail');
-      if (!fit || !zoom || !railBox) return;
+      if (!railBox) return;
       if (!DESKTOP()) {
-        fit.style.width = fit.style.height = ''; fit.style.overflowY = '';
-        zoom.style.width = ''; zoom.style.transform = ''; zoom.style.marginBottom = '';
+        railBox.classList.remove('spread');
+        if (fit) { fit.style.width = fit.style.height = ''; fit.style.overflowY = ''; }
+        if (zoom) { zoom.style.width = ''; zoom.style.transform = ''; zoom.style.marginBottom = ''; }
         if (railWrap) railWrap.style.width = '';
         return;
       }
-      // render the paper at the center column's real width (two-page spread),
-      // then scale ONLY if it's still too tall — floored so text stays readable
-      var paperW = Math.max(430, Math.min(880, railBox.clientWidth));
+      // a two-column spread needs real width to stay readable; under 560px the
+      // paper flows as one full-size column instead (class drives the CSS)
+      var railW = railBox.clientWidth;
+      var spread = railW >= 560;
+      railBox.classList.toggle('spread', spread);
+      if (!fit || !zoom) return;
+      var paperW = Math.min(spread ? 880 : 680, railW);
       zoom.style.width = paperW + 'px';
       zoom.style.transform = 'none';
       zoom.style.marginBottom = '';
+      if (!LOCKED()) {
+        // two-column band: the paper renders at natural size and the PAGE
+        // scrolls — no scaling, no inner pane scrolling
+        fit.style.width = paperW + 'px';
+        fit.style.height = '';
+        fit.style.overflowY = '';
+        if (railWrap) railWrap.style.width = fit.style.width;
+        return;
+      }
       var availH = Math.max(320, window.innerHeight - fit.getBoundingClientRect().top - 18);
       var natural = zoom.offsetHeight;
       if (!natural) return;
-      var scale = Math.min(1, availH / natural);
-      if (scale < 0.75) scale = 0.75;  // readability floor; below it, scroll inside
+      var scale = 1;
+      if (spread) {  // only the spread shrinks-to-fit; a single column just scrolls
+        scale = Math.min(1, availH / natural);
+        if (scale < 0.75) scale = 0.75;  // readability floor; below it, scroll inside
+      }
       var shownH = Math.ceil(natural * scale);
       if (scale < 1) {
         zoom.style.transform = 'scale(' + scale + ')';

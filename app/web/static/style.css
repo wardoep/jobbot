@@ -1372,6 +1372,15 @@ tbody tr:hover { background: var(--inset); }
 @media (max-width:520px) {
   .mg-grid { grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:10px; }
   .mg-card { min-height:150px; padding:13px 13px 11px; }
+  /* the salary + 3 action buttons don't fit a ~146px card side by side:
+     smaller buttons, and let the row wrap instead of jutting past the card */
+  .mg-foot { flex-wrap:wrap; row-gap:2px; }
+  .mg-btn { width:29px; height:29px; font-size:17px; }
+  .mg-btn.check, .mg-btn.undo { font-size:13px; }
+  /* hero: ring + logo + star + × leave ~50px for the title in a no-wrap row —
+     give the heading its own full-width first line instead */
+  .mt-hero-main { flex-wrap:wrap; }
+  .mt-hero-heading { flex:1 1 100%; order:-1; }
 }
 
 /* ============================================================ RESUME SCORE
@@ -1504,3 +1513,12 @@ tbody tr:hover { background: var(--inset); }
 .kit-foot .btn.ghost { background:var(--ghost-bg); color:var(--ghost-fg); }
 .kit-note { font-size:12px; color:var(--faint); }
 
+
+/* ============================================================ MOBILE SHELL FIX
+   (2026-07-08) At <=760px the sidebar becomes a horizontal sticky top bar,
+   but the <nav> wrapper kept stacking its links vertically — a full-screen
+   pile-up covering the page on phones. Row-ify the nav; the bar scrolls
+   sideways as originally intended (.jb-aside already has overflow-x:auto). */
+@media (max-width: 760px) {
+  .jb-aside nav { display: flex; flex-direction: row; align-items: center; gap: 4px; }
+}
