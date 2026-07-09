@@ -89,8 +89,10 @@
     </div>
   {% endif %}
 
-  {# ---- round-tripped state + explicit save ---- #}
-  <textarea name="paper_json" hidden>{{ paper_json }}</textarea>
+  {# ---- round-tripped state + explicit save ----
+      paper_json is OOB so it REPLACES the single #paper-json already in the form
+      (the on-load preview paper) rather than adding a duplicate name. -#}
+  <textarea id="paper-json" name="paper_json" hidden hx-swap-oob="true">{{ paper_json }}</textarea>
   <textarea name="after_json" hidden>{{ after_json }}</textarea>
   <div class="bld-savebar">
     <button type="button" class="btn sg"

@@ -14,7 +14,7 @@ import re
 from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, Request, UploadFile
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from sqlalchemy.orm import Session as SessionType
 
 from app.assist import (
@@ -24,6 +24,7 @@ from app.assist import (
     improve_resume,
     paper_to_text,
     parse_resume,
+    reformat_resume,
 )
 from app.config import PROJECT_ROOT, settings
 from app.llm import LLMError
@@ -416,6 +417,34 @@ def _paper_from_json(raw: str) -> dict | None:
     return paper
 
 
+def _ensure_paper(db: SessionType, doc) -> dict | None:
+    """The doc's structured 'paper' (name/summary/sections) used to preview it in
+    any look and to build the PDF/Word download. Cached on Resume.paper_json and
+    generated once via an honest REFORMAT (no invention). Returns None when we
+    can't build one (no LLM, no budget, empty resume) — the page then falls back
+    to the plain annotated 'your resume today' view."""
+    if doc is None:
+        return None
+    cached = doc.paper_json
+    if isinstance(cached, dict) and (cached.get("name") or cached.get("summary") or cached.get("sections")):
+        return cached
+    if not settings.llm_configured or not (doc.raw_text or "").strip():
+        return None
+    from app.llm_budget import try_spend
+
+    if not try_spend(db, 1):
+        return None
+    try:
+        paper = reformat_resume(doc.raw_text, "modern")
+    except LLMError:
+        return None
+    if not (paper.get("name") or paper.get("summary") or paper.get("sections")):
+        return None
+    doc.paper_json = paper
+    db.commit()
+    return paper
+
+
 @router.get("/builder")
 def builder_page(
     request: Request,
@@ -447,14 +476,22 @@ def builder_page(
     annotations = None
     if target is not None and (target.raw_text or "").strip():
         annotations = _annotate_resume(target.raw_text, suggestions)
+    # The structured paper (for live look previews + download), and the look this
+    # doc was saved with — if any, the preview opens already styled in that look.
+    paper = _ensure_paper(db, target)
+    selected = target.look if (target and target.look in _BUILDER_KEYS) else "modern"
+    show_styled = bool(target and target.look and paper)
     return render(
         request, "resume_builder.html", user=user,
         llm_ready=settings.llm_configured,
         docs=docs, target=target, fix_suggestions=suggestions,
         annotations=annotations,
+        paper=paper,
+        paper_json=json.dumps(paper, ensure_ascii=False) if paper else "",
+        show_styled=show_styled,
         before=(target.grade_json or {}).get("overall") if target else None,
         templates=BUILDER_TEMPLATES,
-        selected="modern",
+        selected=selected,
     )
 
 
@@ -579,6 +616,58 @@ def builder_restyle(
     return render(request, "_resume_paper.html", user=user, paper=paper, tpl=template)
 
 
+@router.post("/builder/set-look")
+def builder_set_look(
+    doc_id: str = Form("0"),
+    template: str = Form("modern"),
+    user: User = Depends(require_user),
+    db: SessionType = Depends(get_db),
+):
+    """Remember the chosen look for THIS resume so 'your resume today' opens
+    styled in it next time. A display preference only — content is untouched."""
+    if template not in _BUILDER_KEYS:
+        template = "modern"
+    doc = (
+        db.query(Resume)
+        .filter_by(id=_int(doc_id), user_id=user.id, kind="resume").first()
+    )
+    if doc is None:
+        return HTMLResponse('<span class="bld-savemsg">Couldn\'t save that look.</span>')
+    doc.look = template
+    db.commit()
+    label = next((t["label"] for t in BUILDER_TEMPLATES if t["key"] == template), template)
+    return HTMLResponse(
+        f'<span style="color:var(--green);font-size:12.5px;font-weight:600">'
+        f'✓ Saved — your resume today now opens in the {label} look.</span>'
+    )
+
+
+@router.post("/builder/download")
+def builder_download(
+    paper_json: str = Form(""),
+    fmt: str = Form("pdf"),          # "pdf" | "docx"
+    user: User = Depends(require_user),
+):
+    """Download the resume that's currently previewed (the round-tripped paper)
+    as a clean PDF or Word file — reuses the same ATS-safe builders as the
+    application kit, so it never re-spends an AI call."""
+    fmt = fmt if fmt in ("pdf", "docx") else "pdf"
+    paper = _paper_from_json(paper_json)
+    if paper is None:
+        return HTMLResponse("Nothing to download yet — pick a look first.",
+                            status_code=400)
+    from app.web.kit import _MEDIA, _resume_docx, _resume_pdf
+
+    blob = _resume_pdf(paper) if fmt == "pdf" else _resume_docx(paper)
+    base = f"{paper.get('name') or 'resume'} - resume"
+    safe = re.sub(r"[^A-Za-z0-9 ._-]+", "", base).strip() or "resume"
+    return Response(
+        content=blob,
+        media_type=_MEDIA[fmt],
+        headers={"Content-Disposition": f'attachment; filename="{safe}.{fmt}"'},
+    )
+
+
 @router.post("/builder/save")
 def builder_save(
     request: Request,
@@ -586,12 +675,16 @@ def builder_save(
     doc_id: str = Form("0"),
     paper_json: str = Form(""),
     after_json: str = Form(""),
+    template: str = Form("modern"),   # the chosen look — saved with the document
     user: User = Depends(require_user),
     db: SessionType = Depends(get_db),
 ):
     """Save a builder result as a NEW resume document (the original upload is
-    never touched). The run's fresh grade is stored with it, so the Resume-score
-    card shows the new score immediately."""
+    never touched). The run's fresh grade AND the chosen look are stored with it,
+    so the Resume-score card shows the new score and re-opening this doc in the
+    builder shows 'your resume today' already in the saved look."""
+    if template not in _BUILDER_KEYS:
+        template = "modern"
     paper = _paper_from_json(paper_json)
     text = paper_to_text(paper) if paper else ""
     if not text.strip():
@@ -611,11 +704,15 @@ def builder_save(
         db.query(Resume)
         .filter_by(id=_int(doc_id), user_id=user.id, kind="resume").first()
     )
+    # Saving a look without a fresh run (same content) keeps the original grade.
+    if grade is None and orig is not None:
+        grade = orig.grade_json
     stem = orig.filename.rsplit(".", 1)[0].strip() if orig else "Resume"
     filename = f"{stem or 'Resume'} (improved).txt"
 
     new_doc = Resume(user_id=user.id, kind="resume", filename=filename,
-                     raw_text=text, grade_json=grade)
+                     raw_text=text, grade_json=grade,
+                     paper_json=paper, look=template)
     db.add(new_doc)
     db.commit()
     # Parse in the background so matching reads the new version; skip regrading

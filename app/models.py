@@ -59,6 +59,28 @@ class User(Base):
     # they connect on Options), and the one-time token used to link it.
     telegram_chat_id: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
     telegram_link_token: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    # Inbox watcher (opt-in on Options): read-only IMAP access to the user's own
+    # mailbox so JobBot can spot application confirmations / rejections /
+    # interview invites. The password is Fernet-encrypted with a key derived
+    # from SECRET_KEY (see app/inbox.py seal/unseal) — never stored plaintext.
+    imap_host: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    imap_email: Mapped[Optional[str]] = mapped_column(String(320), nullable=True)
+    imap_password: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    inbox_enabled: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=false()
+    )
+    inbox_last_uid: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    inbox_scanned_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    # How the inbox watcher should ping this user — a list drawn from
+    # ["telegram", "email", "ntfy", "discord"]. NULL = default behavior
+    # (Telegram when connected, else email). ntfy_topic is a topic name on
+    # ntfy.sh or a full URL for self-hosted servers; discord_webhook is a
+    # Discord channel webhook URL.
+    inbox_ping_channels: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
+    ntfy_topic: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
+    discord_webhook: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     # When True (and a phone is set), login requires a second SMS code.
     sms_2fa_enabled: Mapped[bool] = mapped_column(
         Boolean, default=False, server_default=false()
@@ -107,6 +129,11 @@ class Resume(Base):
     # prioritized suggestions (see assist.grade_resume). NULL until graded;
     # populated in the background after upload.
     grade_json: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    # Builder: a cached structured "paper" of THIS resume (name/summary/sections),
+    # so the builder can preview it in any look instantly without re-parsing, and
+    # the chosen template look this doc was saved with (NULL = never picked one).
+    paper_json: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    look: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     uploaded_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -377,6 +404,34 @@ class Star(Base):
     )
 
     user: Mapped["User"] = relationship(back_populates="stars")
+
+
+# ---------------------------------------------------------------------------
+# inbox_events — one row per actionable email the inbox watcher handled
+# (application confirmation / rejection / interview / offer). The unique
+# (user, message_id) pair guarantees a message can never trigger twice, even
+# if the incremental UID cursor is ever reset.
+# ---------------------------------------------------------------------------
+class InboxEvent(Base):
+    __tablename__ = "inbox_events"
+    __table_args__ = (
+        UniqueConstraint("user_id", "message_id", name="uq_inbox_user_message"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    message_id: Mapped[str] = mapped_column(String(255))
+    # "application_confirmation" | "rejection" | "interview" | "offer"
+    kind: Mapped[str] = mapped_column(String(30))
+    job_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("jobs.id", ondelete="SET NULL"), nullable=True
+    )
+    subject: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
 
 
 # ---------------------------------------------------------------------------

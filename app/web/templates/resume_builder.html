@@ -248,10 +248,31 @@
   }
   .bld-placeholder > b { display: block; font-family: var(--font-display); font-weight: 700; font-size: 15px; color: var(--text); margin-top: 10px; }
   .bld-placeholder span { display: block; font-size: 13px; color: var(--faint); margin-top: 5px; line-height: 1.55; max-width: 380px; margin-left: auto; margin-right: auto; }
+
+  /* ------- header row with the top-right download control ------- */
+  .bld-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .bld-dl { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+  .bld-dl-lbl { font-size: 12px; font-weight: 600; color: var(--faint); margin-right: 2px; }
+  .bld-dl .btn.small { padding: 7px 13px; font-size: 12.5px; }
+
+  /* ------- pick-a-look: fade the preview when the look changes ------- */
+  #paper-pane { transition: opacity .26s ease; }
+  #paper-pane.htmx-swapping { opacity: 0; }
 </style>
 
-<p class="eyebrow">Documents</p>
-<h1 class="sg">Resume builder</h1>
+<div class="bld-head">
+  <div>
+    <p class="eyebrow">Documents</p>
+    <h1 class="sg" style="margin:0">Resume builder</h1>
+  </div>
+  {% if target %}
+  <div class="bld-dl">
+    <span class="bld-dl-lbl">Download this resume</span>
+    <button type="button" class="btn small" onclick="downloadResume('pdf')">⬇ PDF</button>
+    <button type="button" class="btn small secondary" onclick="downloadResume('docx')">⬇ Word</button>
+  </div>
+  {% endif %}
+</div>
 <p class="sub">Tick the fixes to apply, add your own notes, pick a look — JobBot rewrites your
   resume honestly, shows you every change, and re-scores it. Your uploaded files are never
   touched; saving adds a new copy.</p>
@@ -272,6 +293,10 @@
 {% else %}
   <form id="builder-form" class="builder-cols" onsubmit="return false">
     <input type="hidden" name="doc_id" value="{{ target.id }}">
+    {# the current preview's structured paper — populated on load with this
+       resume, replaced (OOB) by the improved paper after a run; drives the
+       instant look-switch preview and the PDF/Word download #}
+    <textarea id="paper-json" name="paper_json" hidden>{{ paper_json }}</textarea>
 
     <div class="builder-left">
       {% if docs|length > 1 %}
@@ -358,7 +383,13 @@
         {% endfor %}
       </div>
       <p class="bld-hint" style="margin:8px 0 0">The look only changes the layout, never the
-        words — and after a run you can switch looks instantly.</p>
+        words. Your resume today previews in the look you pick.</p>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px">
+        <button type="button" class="btn small secondary"
+                hx-post="/resumes/builder/set-look"
+                hx-target="#look-saved" hx-swap="innerHTML">★ Save this look</button>
+        <span id="look-saved"></span>
+      </div>
 
       <div class="bld-runwrap">
         <button type="button" class="btn block sg"
@@ -374,19 +405,25 @@
 
     <div class="builder-paperrail">
       <div id="paper-rail">
-        {% if annotations %}
+        {% if paper or annotations %}
           <div class="bld-eyebrow">Your resume today{% if before is not none %} · scored {{ before }} / 100{% endif %}</div>
-          {% if annotations.any %}
+          {% if show_styled %}
+            <p class="bld-hint" style="margin:2px 0 10px">Shown in your saved look — pick another
+              look in step 3 and it changes instantly.</p>
+          {% elif annotations and annotations.any %}
             <p class="bld-hint" style="margin:2px 0 10px">Your resume with its problem spots
-              boxed — each number matches a fix in step 1, with its points.</p>
-          {% elif not fix_suggestions %}
-            <p class="bld-hint" style="margin:2px 0 10px">The resume the builder starts from —
-              <a href="/resumes#resume-score">grade it</a> to see its problem spots boxed here.</p>
+              boxed — each number matches a fix in step 1. Pick a look in step 3 to preview it styled.</p>
+          {% elif paper %}
+            <p class="bld-hint" style="margin:2px 0 10px">Pick a look in step 3 to preview your
+              resume in that style.</p>
           {% else %}
             <p class="bld-hint" style="margin:2px 0 10px">The resume the builder starts from.</p>
           {% endif %}
           <div id="paper-fit"><div id="paper-zoom">
             <div id="paper-pane">
+              {% if show_styled and paper %}
+                {% with tpl = selected %}{% include "_resume_paper.html" %}{% endwith %}
+              {% elif annotations %}
               <div class="bld-paper">
                 {% for m in annotations.doc_marks %}
                   <div class="bld-docmark {{ m.priority }}">
@@ -417,6 +454,9 @@
                   {% endfor %}
                 </div>
               </div>
+              {% elif paper %}
+                {% with tpl = selected %}{% include "_resume_paper.html" %}{% endwith %}
+              {% endif %}
             </div>
           </div></div>
         {% endif %}
@@ -465,15 +505,44 @@
       inp.scrollIntoView({behavior: 'smooth', block: 'center'});
       inp.focus();
     }
-    // After a run exists, switching the look re-renders the paper instantly (no AI call).
+    // Picking a look fades "your resume today" into that style — instantly, no
+    // AI call (the current paper is already in the hidden #paper-json field).
+    // The `swap:260ms` holds the htmx-swapping class so the CSS opacity fade
+    // plays out before the DOM is replaced, then the new content fades in.
     document.querySelectorAll('input[name="template"]').forEach(function (r) {
       r.addEventListener('change', function () {
-        if (document.querySelector('textarea[name="paper_json"]')) {
+        var pj = document.getElementById('paper-json');
+        if (pj && pj.value.trim()) {
           htmx.ajax('POST', '/resumes/builder/restyle',
-                    {source: '#builder-form', target: '#paper-pane', swap: 'innerHTML'});
+                    {source: '#builder-form', target: '#paper-pane',
+                     swap: 'innerHTML swap:260ms'});
         }
       });
     });
+
+    // Download the currently-previewed resume (current look) as PDF or Word.
+    function downloadResume(fmt) {
+      var pj = document.getElementById('paper-json');
+      if (!pj || !pj.value.trim()) {
+        alert('Pick a look or run the builder first, then download.');
+        return;
+      }
+      var tpl = document.querySelector('input[name="template"]:checked');
+      var fd = new FormData();
+      fd.append('paper_json', pj.value);
+      fd.append('fmt', fmt);
+      fd.append('template', tpl ? tpl.value : 'modern');
+      fetch('/resumes/builder/download', {method: 'POST', body: fd})
+        .then(function (res) { if (!res.ok) throw new Error('download failed'); return res.blob(); })
+        .then(function (blob) {
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement('a');
+          a.href = url; a.download = 'resume.' + fmt;
+          document.body.appendChild(a); a.click(); a.remove();
+          setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+        })
+        .catch(function () { alert('Sorry — the download could not be generated.'); });
+    }
 
     // Layout is pure CSS now — a single centered resume page, the window
     // scrolls. This just strips any inline sizing an earlier build's scaling
