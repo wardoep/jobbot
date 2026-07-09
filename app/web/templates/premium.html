@@ -50,9 +50,9 @@
         <span>Exclude keywords, block companies, skip staffing agencies, and set a
         minimum salary.</span></div></div>
       <div class="pm-row"><div class="pm-ico">◐</div>
-        <div><b>Premium themes</b>
-        <span>Four extra looks with animated backgrounds, their own colors and
-        typefaces — Aurora, Ember, Deep Ocean and Terminal.</span></div></div>
+        <div><b>Premium themes + the studio</b>
+        <span>Seven extra looks with animated backgrounds, their own colors and
+        typefaces — plus a theme studio to build and save up to ten of your own.</span></div></div>
       <div class="pm-row"><div class="pm-ico">📬</div>
         <div><b>Inbox watcher</b>
         <span>Connect your email (read-only) and JobBot marks jobs Applied from
@@ -61,10 +61,46 @@
     </div>
   </div>
 
+  {% if premium %}
+    <div class="pm-note" style="text-align:center">
+      <b style="color:var(--text)">You have Premium ✦</b> — every feature above is
+      already yours. Enjoy.
+    </div>
+  {% else %}
+    <div class="pm-price card">
+      <div class="pm-amt-row">
+        <span class="pm-amt sg">${{ '%.2f'|format(price_intro) }}</span>
+        <span class="pm-per">/ month</span>
+      </div>
+      <div class="pm-price-sub">for your first {{ intro_months }} months, then
+        ${{ '%.2f'|format(price) }}/month · cancel anytime</div>
+      <a class="pm-cta sg" href="/premium/checkout">✦ Upgrade to Premium →</a>
+      <div class="pm-fine">Billing is still in testing — you won't be charged today.</div>
+    </div>
+  {% endif %}
+
   <div class="pm-note">
-    <b style="color:var(--text)">Premium is in testing.</b> There's nothing to buy yet —
-    accounts are upgraded individually while we trial it. Everything you already use
-    stays free: matching, the daily email, Telegram pings and application kits.
+    Everything you already use stays free: matching, the daily email, Telegram pings
+    and application kits.
   </div>
 </div>
+
+<style>
+  .pm-price { margin-top: 18px; text-align: center; padding: 24px 26px;
+    border: 1.5px solid var(--info-bd); }
+  .pm-amt-row { display: flex; align-items: baseline; justify-content: center; gap: 6px; }
+  .pm-amt { font-family: var(--font-display); font-weight: 800; font-size: 40px;
+    color: var(--text); letter-spacing: -.02em; }
+  .pm-per { color: var(--text-2); font-size: 14px; }
+  .pm-price-sub { color: var(--text-2); font-size: 13px; margin-top: 4px; }
+  .pm-cta {
+    display: block; margin: 16px auto 0; max-width: 320px; padding: 12px 18px;
+    border-radius: 11px; text-align: center; text-decoration: none;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff;
+    font-family: var(--font-display); font-weight: 700; font-size: 14.5px;
+    box-shadow: 0 14px 30px -12px rgba(99,102,241,.7);
+  }
+  .pm-cta:hover { text-decoration: none; filter: brightness(1.07); }
+  .pm-fine { color: var(--faint); font-size: 11.5px; margin-top: 10px; }
+</style>
 {% endblock %}

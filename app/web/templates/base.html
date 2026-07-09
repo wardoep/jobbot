@@ -1,11 +1,16 @@
 <!doctype html>
-<html lang="en" data-theme="{{ theme or 'dark' }}">
+{%- set _theme = theme or 'dark' -%}
+<html lang="en" data-theme="{% if _theme.startswith('custom:') %}custom{% else %}{{ _theme }}{% endif %}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}JobBot{% endblock %}</title>
   <link rel="stylesheet" href="/static/fonts.css?v={{ asset_v }}">
   <link rel="stylesheet" href="/static/style.css?v={{ asset_v }}">
+  {% if _theme.startswith('custom:') %}
+  {# the user's own studio theme — a tiny generated stylesheet (see app/web/themes.py) #}
+  <link rel="stylesheet" href="/themes/custom.css?id={{ _theme[7:] }}&v={{ asset_v }}">
+  {% endif %}
   <script src="https://unpkg.com/htmx.org@1.9.12"></script>
 </head>
 <body class="{% if user %}has-shell{% endif %}">
@@ -32,10 +37,15 @@
       {% if user.role == 'admin' %}
       <a class="jb-nav {% if request.url.path.startswith('/admin') %}active{% endif %}" href="/admin"><span class="jb-ico">◆</span> Admin</a>
       {% endif %}
-      {# ---- the Premium tabs get their own labeled section ---- #}
-      <div class="jb-navlabel"><span class="st">✦</span> Premium</div>
-      <a class="jb-nav {% if request.url.path.startswith('/resumes/builder') %}active{% endif %}" href="/resumes/builder"><span class="jb-ico">✎</span> Resume builder</a>
-      <a class="jb-nav {% if request.url.path.startswith('/themes') %}active{% endif %}" href="/themes"><span class="jb-ico">◐</span> Themes</a>
+      {# ---- the Premium tabs: their own gradient-edged section ---- #}
+      <div class="jb-premiumbox">
+        <div class="jb-navlabel"><span class="st">✦</span> Premium</div>
+        <a class="jb-nav {% if request.url.path.startswith('/resumes/builder') %}active{% endif %}" href="/resumes/builder"><span class="jb-ico">✎</span> Resume builder</a>
+        <a class="jb-nav {% if request.url.path.startswith('/themes') %}active{% endif %}" href="/themes"><span class="jb-ico">◐</span> Themes</a>
+        {% if not premium %}
+        <a class="jb-upgrade" href="/premium">✦ Upgrade</a>
+        {% endif %}
+      </div>
     </nav>
     <div class="jb-spacer"></div>
     <div class="jb-user">

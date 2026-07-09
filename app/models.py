@@ -115,6 +115,31 @@ class User(Base):
 
 
 # ---------------------------------------------------------------------------
+# user_themes — saved custom looks from the theme studio (Premium)
+# ---------------------------------------------------------------------------
+class UserTheme(Base):
+    """One saved custom theme. `settings` holds ONLY the studio's knobs —
+    accent/accent2/bg hex colors, font key, fx style + strength; every derived
+    color is computed in the generated stylesheet (app/web/themes.py), so a
+    knob change never needs a data migration."""
+
+    __tablename__ = "user_themes"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    name: Mapped[str] = mapped_column(String(60))
+    settings: Mapped[dict] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+# ---------------------------------------------------------------------------
 # resumes — uploaded resume OR cover letter, plus extracted plain text
 # ---------------------------------------------------------------------------
 class Resume(Base):

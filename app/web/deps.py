@@ -114,29 +114,71 @@ def is_premium(user: Optional[User]) -> bool:
 # looks with their own palette, animated background and display font — the
 # actual styling lives in style.css under [data-theme="<key>"].
 THEMES = [
+    # `knobs` = the theme-studio starting values when someone hits "edit" on a
+    # preset (accent/accent2/bg hex, font key, fx style, fx strength 1-3).
+    # light has none: custom themes are dark-based, so it can't seed one.
     {"key": "dark", "label": "Midnight", "premium": False,
-     "blurb": "The standard JobBot look — calm, dark and focused."},
+     "blurb": "The standard JobBot look — calm, dark and focused.",
+     "knobs": {"accent": "#6366f1", "accent2": "#22d3ee", "bg": "#0a1426",
+               "font": "inter", "fx": "off", "fx_strength": 2}},
     {"key": "light", "label": "Daylight", "premium": False,
      "blurb": "Bright and clean, for well-lit rooms."},
     {"key": "aurora", "label": "Aurora", "premium": True,
      "blurb": "Northern lights drift behind everything — violet and teal, "
-              "with the Sora typeface."},
+              "with the Sora typeface.",
+     "knobs": {"accent": "#8b5cf6", "accent2": "#2dd4bf", "bg": "#0a0a1f",
+               "font": "sora", "fx": "drift", "fx_strength": 2}},
     {"key": "ember", "label": "Ember", "premium": True,
-     "blurb": "Warm dusk tones, a slow campfire glow, and elegant serif headings."},
+     "blurb": "Warm dusk tones, a slow campfire glow, and elegant serif headings.",
+     "knobs": {"accent": "#f97316", "accent2": "#e11d48", "bg": "#170f0a",
+               "font": "fraunces", "fx": "glow", "fx_strength": 2}},
     {"key": "ocean", "label": "Deep Ocean", "premium": True,
-     "blurb": "Bioluminescent blues that drift like deep water."},
+     "blurb": "Bioluminescent blues that drift like deep water.",
+     "knobs": {"accent": "#06b6d4", "accent2": "#1d4ed8", "bg": "#041420",
+               "font": "inter", "fx": "drift", "fx_strength": 2}},
     {"key": "terminal", "label": "Terminal", "premium": True,
-     "blurb": "Green phosphor on black, scanlines included."},
+     "blurb": "Green phosphor on black, scanlines included.",
+     "knobs": {"accent": "#22c55e", "accent2": "#16a34a", "bg": "#030906",
+               "font": "jetbrains", "fx": "glow", "fx_strength": 2}},
+    {"key": "synthwave", "label": "Synthwave", "premium": True,
+     "blurb": "Fuchsia and violet neon on deep purple — retro-future, "
+              "Space Grotesk headings.",
+     "knobs": {"accent": "#d946ef", "accent2": "#8b5cf6", "bg": "#14081f",
+               "font": "grotesk", "fx": "drift", "fx_strength": 3}},
+    {"key": "blossom", "label": "Blossom", "premium": True,
+     "blurb": "Rose and coral on dark plum — soft, warm, quietly floral.",
+     "knobs": {"accent": "#f43f5e", "accent2": "#fb923c", "bg": "#1c0f14",
+               "font": "inter", "fx": "drift", "fx_strength": 2}},
+    {"key": "gilded", "label": "Gilded", "premium": True,
+     "blurb": "Black and gold with a slow candlelight glow — serif headings, "
+              "very expensive-looking.",
+     "knobs": {"accent": "#f59e0b", "accent2": "#fbbf24", "bg": "#120d05",
+               "font": "fraunces", "fx": "glow", "fx_strength": 2}},
 ]
 THEME_KEYS = {t["key"] for t in THEMES}
 FREE_THEME_KEYS = {t["key"] for t in THEMES if not t["premium"]}
 
+# Display-font choices the theme studio offers — every family is self-hosted
+# in static/fonts.css, so a custom theme never fetches from the network.
+THEME_FONTS = {
+    "inter": "'Inter',-apple-system,system-ui,sans-serif",
+    "sora": "'Sora','Inter',sans-serif",
+    "grotesk": "'Space Grotesk','Inter',sans-serif",
+    "fraunces": "'Fraunces',Georgia,serif",
+    "jetbrains": "'JetBrains Mono',ui-monospace,SFMono-Regular,monospace",
+}
+
 
 def sanitize_theme(value: Optional[str], premium: bool) -> str:
     """The theme a request actually gets: unknown cookie values fall back to
-    dark, and premium themes quietly fall back to dark when the account isn't
-    premium any more (downgrades and tampered cookies both land here)."""
+    dark, and premium themes (including custom:<id> studio themes) quietly
+    fall back to dark when the account isn't premium any more (downgrades and
+    tampered cookies both land here). Ownership of a custom id is enforced by
+    the /themes/custom.css route — a foreign/deleted id 404s there and the
+    page simply renders the plain dark base."""
     theme = value or "dark"
+    if theme.startswith("custom:"):
+        return theme if premium and theme[7:].isdigit() else "dark"
     if theme not in THEME_KEYS or (theme not in FREE_THEME_KEYS and not premium):
         return "dark"
     return theme

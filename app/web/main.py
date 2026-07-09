@@ -23,7 +23,9 @@ from app.web.deps import (
     add_flash,
     render,
 )
-from app.web import admin, assist, auth, dashboard, kit, options, preferences, resumes
+from app.web import (
+    admin, assist, auth, dashboard, kit, options, preferences, resumes, themes,
+)
 
 logger = logging.getLogger("jobbot.web")
 
@@ -56,6 +58,7 @@ app.include_router(admin.router)
 app.include_router(assist.router)
 app.include_router(kit.router)
 app.include_router(options.router)
+app.include_router(themes.router)
 
 
 @app.get("/")

@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% block title %}Theme studio · JobBot{% endblock %}
+{% block main_class %} hm-page{% endblock %}
+{% block body %}
+<style>
+  /* Theme studio — knobs on the left, a LIVE mock page on the right. The
+     preview derives its surface/border/link colors from the knob values with
+     color-mix(), the same way the server builds the real stylesheet, so what
+     you see here is what the whole app becomes. */
+  .stu-cols { display: grid; grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+              gap: 22px; align-items: start; margin-top: 18px; }
+  @media (max-width: 900px) { .stu-cols { grid-template-columns: 1fr; } }
+
+  .stu-knobs.card { padding: 18px 20px; }
+  .stu-lbl { display: block; font-family: var(--font-display); font-weight: 600;
+             font-size: 13px; margin: 14px 0 6px; }
+  .stu-lbl:first-child { margin-top: 0; }
+  .stu-colors { display: flex; gap: 10px; }
+  .stu-color { flex: 1; text-align: center; }
+  .stu-color input[type=color] { width: 100%; height: 42px; padding: 3px;
+    border: 1px solid var(--border-input); border-radius: 9px; background: var(--inset); cursor: pointer; }
+  .stu-color span { display: block; font-size: 11px; color: var(--faint); margin-top: 4px; }
+  .stu-presets { display: flex; flex-wrap: wrap; gap: 6px; }
+  .stu-presets a {
+    border: 1px solid var(--border); border-radius: 999px; padding: 4px 11px;
+    font-family: var(--font-display); font-size: 11.5px; font-weight: 600;
+    color: var(--text-2); text-decoration: none; background: var(--surface);
+  }
+  .stu-presets a:hover { border-color: var(--blue); color: var(--link); text-decoration: none; }
+  .stu-fx { display: flex; gap: 6px; }
+  .stu-fx label {
+    flex: 1; text-align: center; border: 1px solid var(--border); border-radius: 9px;
+    padding: 8px 4px; font-size: 12px; font-weight: 600; color: var(--text-2);
+    cursor: pointer; margin: 0; background: var(--surface);
+  }
+  .stu-fx input { position: absolute; opacity: 0; pointer-events: none; }
+  .stu-fx label:has(input:checked) { border-color: var(--blue); color: var(--link);
+    background: var(--ghost-bg); }
+  .stu-range { width: 100%; }
+  .stu-note { font-size: 12px; color: var(--faint); line-height: 1.5; margin-top: 12px; }
+
+  /* ---- live preview ---- */
+  #stu-prev {
+    --pv-accent: {{ knobs.accent }}; --pv-accent2: {{ knobs.accent2 }};
+    --pv-bg: {{ knobs.bg }};
+    position: relative; overflow: hidden; border-radius: 16px; min-height: 430px;
+    border: 1px solid rgba(127,127,127,.25); background: var(--pv-bg);
+  }
+  #stu-prev i.blob { position: absolute; border-radius: 50%; filter: blur(46px); will-change: transform; }
+  #stu-prev .b1 { width: 380px; height: 380px; left: -80px; top: -120px;
+    background: radial-gradient(circle, color-mix(in srgb, var(--pv-accent) 45%, transparent), transparent 65%);
+    animation: jbdrift1 12s ease-in-out infinite; }
+  #stu-prev .b2 { width: 420px; height: 420px; right: -120px; bottom: -140px;
+    background: radial-gradient(circle, color-mix(in srgb, var(--pv-accent2) 45%, transparent), transparent 65%);
+    animation: jbdrift2 16s ease-in-out infinite; }
+  #stu-prev[data-fx="glow"] i.blob { animation-name: jbbreathe; }
+  #stu-prev[data-fx="off"] i.blob { display: none; }
+  @media (prefers-reduced-motion: reduce) { #stu-prev i.blob { animation: none !important; } }
+
+  #stu-prev .sp-side {
+    position: absolute; left: 0; top: 0; bottom: 0; width: 168px; padding: 16px 12px;
+    background: color-mix(in srgb, color-mix(in oklab, var(--pv-bg) 96%, black) 85%, transparent);
+  }
+  #stu-prev .sp-nav { height: 26px; border-radius: 8px; margin-bottom: 5px;
+    display: flex; align-items: center; padding: 0 10px; gap: 7px;
+    color: color-mix(in oklab, var(--pv-bg) 30%, white); font-size: 11.5px; font-weight: 600; }
+  #stu-prev .sp-nav.on { background: color-mix(in srgb, var(--pv-accent) 22%, transparent);
+    color: color-mix(in oklab, var(--pv-accent) 55%, white); }
+  #stu-prev .sp-main { position: absolute; left: 168px; right: 0; top: 0; bottom: 0; padding: 22px 24px; }
+  #stu-prev .sp-h { font-size: 27px; font-weight: 700; letter-spacing: -.02em;
+    color: #f8fafc; font-family: var(--pv-font, 'Inter'), sans-serif; }
+  #stu-prev .sp-sub { font-size: 12.5px; color: color-mix(in oklab, var(--pv-bg) 42%, white); margin-top: 4px; }
+  #stu-prev .sp-card {
+    margin-top: 16px; border-radius: 13px; padding: 15px 16px;
+    background: color-mix(in oklab, var(--pv-bg) 94%, white);
+    border: 1px solid color-mix(in oklab, var(--pv-bg) 82%, white);
+  }
+  #stu-prev .sp-card b { display: block; font-size: 13.5px; color: #f8fafc;
+    font-family: var(--pv-font, 'Inter'), sans-serif; }
+  #stu-prev .sp-line { display: block; height: 7px; border-radius: 4px; margin-top: 9px;
+    background: color-mix(in oklab, var(--pv-bg) 80%, white); }
+  #stu-prev .sp-line.s { width: 62%; }
+  #stu-prev .sp-btn {
+    display: inline-block; margin-top: 14px; padding: 9px 16px; border-radius: 9px;
+    background: var(--pv-accent); color: #fff; font-size: 12.5px; font-weight: 700;
+    font-family: var(--pv-font, 'Inter'), sans-serif;
+  }
+  #stu-prev .sp-link { margin-left: 12px; font-size: 12.5px; font-weight: 600;
+    color: color-mix(in oklab, var(--pv-accent) 60%, white); }
+  #stu-prev .sp-ring {
+    float: right; width: 54px; height: 54px; border-radius: 50%; margin-left: 10px;
+    background: conic-gradient(var(--pv-accent) 78%, color-mix(in oklab, var(--pv-bg) 80%, white) 0);
+    display: grid; place-items: center;
+  }
+  #stu-prev .sp-ring span {
+    width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center;
+    background: color-mix(in oklab, var(--pv-bg) 94%, white);
+    color: #f8fafc; font-size: 12.5px; font-weight: 800;
+  }
+</style>
+
+<p class="eyebrow">Appearance</p>
+<h1 class="sg">Theme studio</h1>
+<p class="sub">Make JobBot yours — pick the colors, the typeface, and how the background
+  moves. The preview is live.
+  {% if not premium %}Play as much as you like; saving your theme is part of
+  <a href="/premium">Premium ✦</a>.{% endif %}</p>
+<p style="margin:0 0 4px"><a href="/themes" class="muted" style="font-weight:600;font-size:13px">← Back to themes</a></p>
+
+<form method="post" action="/themes/studio" class="stu-cols" id="studio-form">
+  <input type="hidden" name="theme_id" value="{{ theme_id }}">
+  <div class="stu-knobs card">
+    <label class="stu-lbl" for="stu-name">Theme name</label>
+    <input id="stu-name" name="name" maxlength="60" placeholder="e.g. Midnight Rose"
+           value="{{ name }}" autocomplete="off">
+
+    <label class="stu-lbl">Start from a preset</label>
+    <div class="stu-presets">
+      {% for p in presets %}<a href="/themes/studio?base={{ p.key }}">{{ p.label }}</a>{% endfor %}
+    </div>
+
+    <label class="stu-lbl">Colors</label>
+    <div class="stu-colors">
+      <div class="stu-color"><input type="color" name="accent" value="{{ knobs.accent }}"><span>Accent</span></div>
+      <div class="stu-color"><input type="color" name="accent2" value="{{ knobs.accent2 }}"><span>Glow</span></div>
+      <div class="stu-color"><input type="color" name="bg" value="{{ knobs.bg }}"><span>Background</span></div>
+    </div>
+
+    <label class="stu-lbl" for="stu-font">Headings typeface</label>
+    <select id="stu-font" name="font">
+      {% for key, label in [('inter', 'Inter — clean & modern'), ('sora', 'Sora — geometric'),
+                            ('grotesk', 'Space Grotesk — techy'), ('fraunces', 'Fraunces — elegant serif'),
+                            ('jetbrains', 'JetBrains Mono — terminal')] %}
+        <option value="{{ key }}" {% if knobs.font == key %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+
+    <label class="stu-lbl">Background animation</label>
+    <div class="stu-fx">
+      {% for key, label in [('drift', '☁ Drift'), ('glow', '✺ Glow'), ('off', '— Off')] %}
+        <label><input type="radio" name="fx" value="{{ key }}"
+               {% if knobs.fx == key %}checked{% endif %}>{{ label }}</label>
+      {% endfor %}
+    </div>
+    <label class="stu-lbl" for="stu-strength">Animation intensity</label>
+    <input id="stu-strength" class="stu-range" type="range" name="fx_strength"
+           min="1" max="3" step="1" value="{{ knobs.fx_strength }}">
+
+    <button type="submit" class="btn block sg" style="margin-top:18px">
+      {% if premium %}★ Save &amp; use this theme{% else %}✦ Save (needs Premium){% endif %}
+    </button>
+    <p class="stu-note">Saved themes live under “Your themes” — you can keep up to 10
+      and edit them any time.</p>
+  </div>
+
+  <div id="stu-prev" data-fx="{{ knobs.fx }}" aria-hidden="true">
+    <i class="blob b1"></i><i class="blob b2"></i>
+    <div class="sp-side">
+      <div class="sp-nav on">⌂ Home</div>
+      <div class="sp-nav">▤ Resumes</div>
+      <div class="sp-nav">▦ Matches</div>
+      <div class="sp-nav">⚙ Preferences</div>
+    </div>
+    <div class="sp-main">
+      <div class="sp-h" id="sp-heading">Welcome back</div>
+      <div class="sp-sub">This is how JobBot will look in your theme.</div>
+      <div class="sp-card">
+        <div class="sp-ring"><span>85</span></div>
+        <b>Technical Support — Acme Corp</b>
+        <span class="sp-line"></span><span class="sp-line s"></span>
+        <span class="sp-btn">✨ Tailor &amp; apply</span><span class="sp-link">Save for later</span>
+      </div>
+      <div class="sp-card">
+        <b>Your resume score</b>
+        <span class="sp-line s"></span><span class="sp-line"></span>
+      </div>
+    </div>
+  </div>
+</form>
+
+<script>
+  // Live preview: every knob writes straight into the preview panel's CSS
+  // variables — no server round-trip. The same derivations (color-mix) the
+  // real stylesheet uses run right here in the browser.
+  var FONTS = {{ fonts | tojson }};
+  var prev = document.getElementById('stu-prev');
+  var form = document.getElementById('studio-form');
+  function refresh() {
+    prev.style.setProperty('--pv-accent', form.accent.value);
+    prev.style.setProperty('--pv-accent2', form.accent2.value);
+    prev.style.setProperty('--pv-bg', form.bg.value);
+    prev.style.setProperty('--pv-font', FONTS[form.font.value] || "'Inter'");
+    prev.dataset.fx = form.fx.value;
+    var op = {1: .5, 2: .75, 3: 1}[form.fx_strength.value] || .75;
+    prev.querySelectorAll('i.blob').forEach(function (b) { b.style.opacity = op; });
+  }
+  form.addEventListener('input', refresh);
+  refresh();
+</script>
+{% endblock %}

@@ -73,7 +73,8 @@
    this whole block and then re-tint accents/surfaces/fonts in the PREMIUM
    THEMES section at the bottom of this file. */
 :root[data-theme="dark"], :root[data-theme="aurora"], :root[data-theme="ember"],
-:root[data-theme="ocean"], :root[data-theme="terminal"] {
+:root[data-theme="ocean"], :root[data-theme="terminal"], :root[data-theme="synthwave"],
+:root[data-theme="blossom"], :root[data-theme="gilded"], :root[data-theme="custom"] {
   --link:#A5B4FC;
   --blue:#6366F1;
 
@@ -1095,8 +1096,8 @@ tbody tr:hover { background: var(--inset); }
 /* ---- featured hero (v2: same indigo gradient in both themes) -- */
 .mt-hero {
   border-radius:18px; padding:24px; color:#fff; position:relative; overflow:hidden;
-  background:radial-gradient(520px 260px at 92% 0%, rgba(99,102,241,.5), transparent 62%),
-             linear-gradient(135deg,#232030,#3d3384);
+  background:radial-gradient(520px 260px at 92% 0%, var(--hero-glow, rgba(99,102,241,.5)), transparent 62%),
+             linear-gradient(135deg, var(--hero-from, #232030), var(--hero-to, #3d3384));
   box-shadow:0 18px 40px -24px rgba(15,23,48,.5);
 }
 .mt-hero-ring { position:absolute; width:200px; height:200px; border-radius:50%; border:1px solid rgba(255,255,255,.07); top:-70px; right:-30px; }
@@ -1615,6 +1616,7 @@ tbody tr:hover { background: var(--inset); }
   --focus:rgba(139,92,246,.28);
   --flash-info-bg:#191542; --flash-info-fg:#c4b5fd; --flash-info-bd:#2f2670;
   --sidebar:#0d0d24; --sidebar-active:rgba(167,139,250,.2); --sidebar-link:#c4b5fd;
+  --hero-glow:rgba(139,92,246,.55); --hero-from:#1c1734; --hero-to:#4b2f96;
 }
 [data-theme="aurora"] .jb-fx { display: block; }
 [data-theme="aurora"] .jb-fx i:nth-child(1) {
@@ -1648,6 +1650,7 @@ tbody tr:hover { background: var(--inset); }
   --sidebar:#1b110c; --sidebar-text:#c2a68d; --sidebar-active:rgba(251,146,60,.18);
   --sidebar-link:#fdba74; --sidebar-line:rgba(255,220,190,.1);
   --sidebar-ring:rgba(214,170,130,.3); --sidebar-hover:rgba(255,220,190,.07);
+  --hero-glow:rgba(249,115,22,.45); --hero-from:#2b1a10; --hero-to:#8a4211;
 }
 [data-theme="ember"] .jb-fx { display: block; }
 [data-theme="ember"] .jb-fx i:nth-child(1) {
@@ -1676,6 +1679,7 @@ tbody tr:hover { background: var(--inset); }
   --focus:rgba(34,211,238,.25);
   --flash-info-bg:#07293f; --flash-info-fg:#7dd3fc; --flash-info-bd:#0e4d70;
   --sidebar:#051a29; --sidebar-active:rgba(34,211,238,.16); --sidebar-link:#67e8f9;
+  --hero-glow:rgba(6,182,212,.45); --hero-from:#0a2433; --hero-to:#0b5a74;
 }
 [data-theme="ocean"] .jb-fx { display: block; }
 [data-theme="ocean"] .jb-fx i:nth-child(1) {
@@ -1709,6 +1713,7 @@ tbody tr:hover { background: var(--inset); }
   --sidebar:#050d07; --sidebar-text:#79a98c; --sidebar-active:rgba(74,222,128,.15);
   --sidebar-link:#4ade80; --sidebar-line:rgba(134,239,172,.1);
   --sidebar-ring:rgba(74,222,128,.3); --sidebar-hover:rgba(134,239,172,.06);
+  --hero-glow:rgba(34,197,94,.35); --hero-from:#0a1a10; --hero-to:#14532d;
 }
 [data-theme="terminal"] .jb-fx { display: block; }
 [data-theme="terminal"] .jb-fx i:nth-child(1) {
@@ -1741,3 +1746,143 @@ tbody tr:hover { background: var(--inset); }
   display: block; font-size: 10px; font-weight: 700; letter-spacing: .08em;
   text-transform: uppercase; color: var(--sidebar-faint); margin-top: 1px;
 }
+
+/* ---------------- SYNTHWAVE — fuchsia/violet neon, Space Grotesk --------- */
+:root[data-theme="synthwave"] {
+  --font-display:'Space Grotesk','Inter',-apple-system,system-ui,sans-serif;
+  --link:#f0abfc; --blue:#d946ef; --navy:#d946ef; --brand-d:#c026d3; --cyan:#a78bfa;
+  --page:#14081f; --surface:#1d0f2b; --inset:#170a23; --track:#33194a;
+  --border:#33194a; --border-input:#33194a;
+  --info:#f0abfc; --info-bg:#2a1040; --info-bd:#4a1d6e;
+  --ghost-bg:rgba(217,70,239,.2); --ghost-fg:#f0abfc;
+  --focus:rgba(217,70,239,.3);
+  --flash-info-bg:#2a1040; --flash-info-fg:#f0abfc; --flash-info-bd:#4a1d6e;
+  --sidebar:#170a23; --sidebar-active:rgba(217,70,239,.2); --sidebar-link:#f0abfc;
+  --hero-glow:rgba(217,70,239,.45); --hero-from:#241031; --hero-to:#7c2d92;
+}
+[data-theme="synthwave"] .jb-fx { display: block; }
+[data-theme="synthwave"] .jb-fx i:nth-child(1) {
+  width: 700px; height: 700px; left: -180px; top: -220px;
+  background: radial-gradient(circle, rgba(217,70,239,.4), transparent 65%);
+  animation: jbdrift1 30s ease-in-out infinite;
+}
+[data-theme="synthwave"] .jb-fx i:nth-child(2) {
+  width: 720px; height: 720px; right: -220px; bottom: -200px;
+  background: radial-gradient(circle, rgba(124,58,237,.45), transparent 65%);
+  animation: jbdrift2 40s ease-in-out infinite;
+}
+[data-theme="synthwave"] .jb-fx i:nth-child(3) {
+  width: 540px; height: 540px; left: 34%; top: 46%;
+  background: radial-gradient(circle, rgba(79,70,229,.3), transparent 65%);
+  animation: jbbreathe 20s ease-in-out infinite;
+}
+
+/* ---------------- BLOSSOM — rose/coral on dark plum ----------------------- */
+:root[data-theme="blossom"] {
+  --link:#fda4af; --blue:#f43f5e; --navy:#f43f5e; --brand-d:#e11d48; --cyan:#fda4af;
+  --page:#1c0f14; --surface:#281419; --inset:#200f14; --track:#45222c;
+  --border:#45222c; --border-input:#45222c;
+  --text:#fbf3f4; --text-2:#c3a6ab; --muted:#93767c; --faint:#93767c;
+  --info:#fda4af; --info-bg:#331119; --info-bd:#5c1f2c;
+  --ghost-bg:rgba(244,63,94,.18); --ghost-fg:#fda4af;
+  --focus:rgba(244,63,94,.28);
+  --flash-info-bg:#331119; --flash-info-fg:#fda4af; --flash-info-bd:#5c1f2c;
+  --sidebar:#200f14; --sidebar-text:#c0a1a7; --sidebar-active:rgba(251,113,133,.16);
+  --sidebar-link:#fda4af; --sidebar-line:rgba(253,164,175,.1);
+  --sidebar-ring:rgba(205,150,158,.3); --sidebar-hover:rgba(253,164,175,.06);
+  --hero-glow:rgba(244,63,94,.4); --hero-from:#2b1218; --hero-to:#8c2440;
+}
+[data-theme="blossom"] .jb-fx { display: block; }
+[data-theme="blossom"] .jb-fx i:nth-child(1) {
+  width: 660px; height: 660px; left: -160px; top: -200px;
+  background: radial-gradient(circle, rgba(244,63,94,.3), transparent 65%);
+  animation: jbdrift1 38s ease-in-out infinite;
+}
+[data-theme="blossom"] .jb-fx i:nth-child(2) {
+  width: 620px; height: 620px; right: -180px; bottom: -180px;
+  background: radial-gradient(circle, rgba(251,146,60,.22), transparent 65%);
+  animation: jbdrift2 46s ease-in-out infinite;
+}
+[data-theme="blossom"] .jb-fx i:nth-child(3) {
+  width: 500px; height: 500px; left: 40%; bottom: -200px;
+  background: radial-gradient(circle, rgba(251,113,133,.18), transparent 65%);
+  animation: jbbreathe 26s ease-in-out infinite;
+}
+
+/* ---------------- GILDED — black & gold, candlelight, Fraunces ------------ */
+:root[data-theme="gilded"] {
+  --font-display:'Fraunces',Georgia,'Times New Roman',serif;
+  --link:#fcd34d; --blue:#f59e0b; --navy:#f59e0b; --brand-d:#d97706; --cyan:#fbbf24;
+  --page:#120d05; --surface:#1c1509; --inset:#160f06; --track:#3a2c12;
+  --border:#3a2c12; --border-input:#3a2c12;
+  --text:#faf6ec; --text-2:#c0b39a; --muted:#8d8062; --faint:#8d8062;
+  --info:#fcd34d; --info-bg:#2a1f0a; --info-bd:#543f12;
+  --ghost-bg:rgba(245,158,11,.16); --ghost-fg:#fcd34d;
+  --focus:rgba(245,158,11,.28);
+  --flash-info-bg:#2a1f0a; --flash-info-fg:#fcd34d; --flash-info-bd:#543f12;
+  --badge-new-bg:#faf6ec; --badge-new-fg:#120d05;
+  --sidebar:#160f06; --sidebar-text:#bfa87e; --sidebar-active:rgba(251,191,36,.15);
+  --sidebar-link:#fcd34d; --sidebar-line:rgba(252,211,77,.1);
+  --sidebar-ring:rgba(214,182,110,.3); --sidebar-hover:rgba(252,211,77,.06);
+  --hero-glow:rgba(245,158,11,.4); --hero-from:#221807; --hero-to:#7a5410;
+}
+[data-theme="gilded"] .jb-fx { display: block; }
+[data-theme="gilded"] .jb-fx i:nth-child(1) {
+  width: 720px; height: 720px; left: 20%; bottom: -300px;
+  background: radial-gradient(circle, rgba(245,158,11,.28), transparent 65%);
+  animation: jbbreathe 20s ease-in-out infinite;
+}
+[data-theme="gilded"] .jb-fx i:nth-child(2) {
+  width: 560px; height: 560px; right: -160px; top: -180px;
+  background: radial-gradient(circle, rgba(251,191,36,.18), transparent 65%);
+  animation: jbdrift2 44s ease-in-out infinite;
+}
+[data-theme="gilded"] .jb-fx i:nth-child(3) { display: none; }
+
+/* ---- CUSTOM (theme studio): dark base + the generated /themes/custom.css
+   stylesheet, which sets accents, surfaces, font and blob colors from the
+   user's saved knobs. Only the fx display toggle lives here. ---- */
+[data-theme="custom"] .jb-fx { display: block; }
+[data-theme="custom"] .jb-fx i:nth-child(1) {
+  width: 680px; height: 680px; left: -170px; top: -210px;
+  background: radial-gradient(circle, var(--fx-c1, transparent), transparent 65%);
+  animation: jbdrift1 36s ease-in-out infinite;
+}
+[data-theme="custom"] .jb-fx i:nth-child(2) {
+  width: 700px; height: 700px; right: -210px; bottom: -190px;
+  background: radial-gradient(circle, var(--fx-c2, transparent), transparent 65%);
+  animation: jbdrift2 46s ease-in-out infinite;
+}
+[data-theme="custom"] .jb-fx i:nth-child(3) {
+  width: 540px; height: 540px; left: 36%; bottom: -220px;
+  background: radial-gradient(circle, var(--fx-c3, transparent), transparent 65%);
+  animation: jbbreathe 24s ease-in-out infinite;
+}
+[data-theme="custom"][data-fx="glow"] .jb-fx i { animation-name: jbbreathe; }
+[data-theme="custom"][data-fx="off"] .jb-fx { display: none; }
+
+/* ---- sidebar: make the Premium section FEEL premium ---------------------- */
+.jb-premiumbox {
+  margin-top: 14px; padding: 9px 7px 7px; border-radius: 13px;
+  border: 1px solid transparent;
+  background: linear-gradient(var(--sidebar), var(--sidebar)) padding-box,
+              linear-gradient(135deg, #6366f1, #8b5cf6 45%, #2dd4bf) border-box;
+  box-shadow: 0 10px 30px -18px rgba(99,102,241,.55);
+}
+.jb-premiumbox .jb-navlabel {
+  margin: 0 10px 6px; padding-top: 0; border-top: 0;
+  background: linear-gradient(90deg, #a5b4fc, #c4b5fd 55%, #5eead4);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.jb-premiumbox .jb-navlabel .st {
+  background: none; -webkit-background-clip: initial; background-clip: initial;
+  color: #a5b4fc; animation: jbglow 3.2s ease-in-out infinite;
+}
+.jb-upgrade {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  margin: 7px 3px 2px; padding: 8px 10px; border-radius: 9px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff; font-family: var(--font-display); font-weight: 700; font-size: 12px;
+  text-decoration: none; box-shadow: 0 10px 22px -12px rgba(99,102,241,.8);
+}
+.jb-upgrade:hover { text-decoration: none; filter: brightness(1.08); }

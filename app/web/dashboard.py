@@ -339,21 +339,39 @@ def premium_page(
     request: Request,
     user: User = Depends(require_user),
 ):
-    """What Premium includes — and, while tiers are in testing, how to get it."""
+    """The Premium sales page: what's included, the price, and the way in.
+    (The /themes routes live in app/web/themes.py.)"""
     return render(request, "premium.html", user=user,
-                  free_limit=settings.free_match_limit)
+                  free_limit=settings.free_match_limit,
+                  price_intro=settings.premium_price_intro,
+                  price=settings.premium_price,
+                  intro_months=settings.premium_intro_months)
 
 
-@router.get("/themes")
-def themes_page(
+@router.get("/premium/checkout")
+def premium_checkout(
     request: Request,
     user: User = Depends(require_user),
 ):
-    """Pick the app's look. Everyone sees every theme as a LIVE animated
-    preview (the enticement); applying a Premium one is checked in /theme."""
-    from app.web.deps import THEMES
+    """The checkout screen. Payment processing isn't connected yet — this is
+    the real page with an order summary and a mock payment panel, so the flow
+    exists end-to-end the day billing is wired in."""
+    return render(request, "premium_checkout.html", user=user,
+                  price_intro=settings.premium_price_intro,
+                  price=settings.premium_price,
+                  intro_months=settings.premium_intro_months)
 
-    return render(request, "themes.html", user=user, themes=THEMES)
+
+@router.post("/premium/checkout")
+def premium_checkout_submit(
+    request: Request,
+    user: User = Depends(require_user),
+):
+    """The Pay button. No processor is connected, so this just says so."""
+    add_flash(request, "Checkout isn't connected yet — Premium is in testing "
+                       "and accounts are being upgraded manually. You haven't "
+                       "been charged.", "info")
+    return RedirectResponse("/premium/checkout", status_code=303)
 
 
 @router.get("/matches")

@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Checkout · JobBot{% endblock %}
+{% block main_class %} hm-page{% endblock %}
+{% block body %}
+<style>
+  .co-wrap { max-width: 560px; margin: 0 auto; }
+  .co-sum { display: flex; flex-direction: column; gap: 10px; }
+  .co-row { display: flex; justify-content: space-between; gap: 14px; font-size: 13.5px;
+    color: var(--text-2); }
+  .co-row b { color: var(--text); font-weight: 600; }
+  .co-row.total { border-top: 1px solid var(--border); padding-top: 12px; margin-top: 4px;
+    font-family: var(--font-display); font-weight: 700; font-size: 15px; color: var(--text); }
+  .co-row.total span:last-child { color: var(--text); }
+  .co-pay label { display: block; font-family: var(--font-display); font-weight: 600;
+    font-size: 13px; margin: 14px 0 6px; }
+  .co-pay input { width: 100%; }
+  .co-split { display: flex; gap: 12px; }
+  .co-split > div { flex: 1; }
+  .co-btn {
+    display: block; width: 100%; margin-top: 20px; padding: 13px 18px; border: 0;
+    border-radius: 11px; cursor: pointer;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff;
+    font-family: var(--font-display); font-weight: 700; font-size: 14.5px;
+    box-shadow: 0 14px 30px -12px rgba(99,102,241,.7);
+  }
+  .co-fine { text-align: center; color: var(--faint); font-size: 11.5px; margin-top: 12px;
+    line-height: 1.6; }
+  .co-lock { text-align: center; color: var(--faint); font-size: 12px; margin-top: 14px; }
+</style>
+
+<div class="co-wrap">
+  <p class="eyebrow">Checkout</p>
+  <h1 class="sg">Upgrade to Premium</h1>
+  <p class="sub"><a href="/premium" class="muted" style="font-weight:600">← Back to what's included</a></p>
+
+  {% if premium %}
+    <div class="card" style="text-align:center;padding:34px 26px">
+      <div style="font-size:34px;color:var(--blue);line-height:1">✦</div>
+      <h2 style="margin:12px 0 6px">You already have Premium</h2>
+      <p class="muted" style="margin:0">Every Premium feature is already on for this
+        account — there's nothing to buy.</p>
+    </div>
+  {% else %}
+    <div class="card">
+      <div class="co-sum">
+        <div class="co-row"><b>JobBot Premium — monthly</b>
+          <span>${{ '%.2f'|format(price_intro) }}/mo</span></div>
+        <div class="co-row"><span>Intro offer — first {{ intro_months }} months</span>
+          <span>then ${{ '%.2f'|format(price) }}/mo</span></div>
+        <div class="co-row"><span>Resume builder · insights · every match · power
+          preferences · inbox watcher · all themes + the studio</span><span></span></div>
+        <div class="co-row total"><span>Due today</span>
+          <span>${{ '%.2f'|format(price_intro) }}</span></div>
+      </div>
+    </div>
+
+    <form method="post" action="/premium/checkout" class="card co-pay" style="margin-top:16px">
+      <h2 style="margin:0 0 2px">Payment</h2>
+      <label for="co-card">Card number</label>
+      <input id="co-card" inputmode="numeric" autocomplete="cc-number"
+             placeholder="1234 5678 9012 3456">
+      <div class="co-split">
+        <div>
+          <label for="co-exp">Expiry</label>
+          <input id="co-exp" inputmode="numeric" autocomplete="cc-exp" placeholder="MM / YY">
+        </div>
+        <div>
+          <label for="co-cvc">CVC</label>
+          <input id="co-cvc" inputmode="numeric" autocomplete="cc-csc" placeholder="123">
+        </div>
+      </div>
+      <button type="submit" class="co-btn sg">Pay ${{ '%.2f'|format(price_intro) }} · Start Premium ✦</button>
+      <p class="co-fine">Billing is still in testing — pressing Pay won't charge this
+        card or store its number. Accounts are upgraded manually while we trial Premium.</p>
+    </form>
+    <p class="co-lock">🔒 Payments will be handled by a certified processor — JobBot
+      never sees your card details.</p>
+  {% endif %}
+</div>
+{% endblock %}

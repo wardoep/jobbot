@@ -87,6 +87,11 @@ class Settings(BaseSettings):
     followup_days: int = Field(default=7, validation_alias="JOBBOT_FOLLOWUP_DAYS")
     # How many "For you" matches a FREE account sees (premium sees them all).
     free_match_limit: int = Field(default=10, validation_alias="JOBBOT_FREE_MATCH_LIMIT")
+    # Premium pricing shown on /premium + the checkout screen (display only —
+    # billing isn't wired up yet; the numbers live here so .env can change them).
+    premium_price_intro: float = Field(default=3.99, validation_alias="JOBBOT_PREMIUM_PRICE_INTRO")
+    premium_price: float = Field(default=5.99, validation_alias="JOBBOT_PREMIUM_PRICE")
+    premium_intro_months: int = Field(default=3, validation_alias="JOBBOT_PREMIUM_INTRO_MONTHS")
 
     # --- LLM: resume tailoring + application Q&A (Phase 6) --------------------
     # The provider is swappable (the same idea as the matching scorer): pick the
