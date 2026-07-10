@@ -516,6 +516,25 @@ def cmd_scan_inbox(args: argparse.Namespace) -> None:
             print(f"   - {e}")
 
 
+def cmd_test_ping(args: argparse.Namespace) -> None:
+    """Send one inbox-watcher test ping to a user's saved channels."""
+    _enable_logs()
+    from app.db import Session
+    from app.inbox import send_test_ping
+    from app.models import User
+
+    with Session() as session:
+        user = session.query(User).filter_by(email=args.email).first()
+        if user is None:
+            sys.exit(f"No account with email {args.email}.")
+        ok, label = send_test_ping(user)
+    if ok:
+        print(f"✓ Test ping delivered via {label} — go check it arrived.")
+    else:
+        sys.exit(f"✗ Could not deliver via {label} — check the ping settings "
+                 "in Options → Inbox watcher.")
+
+
 def cmd_test_email(args: argparse.Namespace) -> None:
     """Send a single test email to confirm your mail settings work."""
     _enable_logs()
@@ -829,6 +848,12 @@ def main() -> None:
     )
     p_inbox.add_argument("--email", help="only scan this user's mailbox")
     p_inbox.set_defaults(func=cmd_scan_inbox)
+
+    p_ping = sub.add_parser(
+        "test-ping", help="send an inbox-watcher test ping to a user's channels"
+    )
+    p_ping.add_argument("--email", required=True, help="the user's JobBot account email")
+    p_ping.set_defaults(func=cmd_test_ping)
 
     # --- Phase 6: tailoring + application Q&A (OpenAI) ---
     p_llm = sub.add_parser("llm-check", help="show the active LLM provider/model")

@@ -349,6 +349,12 @@
         {{ ping_picker() }}
         <button type="submit" class="btn small" style="margin-top:12px">Save ping settings</button>
       </form>
+      <form method="post" action="/options/inbox/test-ping"
+            style="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <button type="submit" class="btn secondary small">🔔 Send a test ping</button>
+        <span class="opt-note" style="margin:0">Uses the saved settings above — hit
+          Save first if you just changed them.</span>
+      </form>
     {% else %}
       <form method="post" action="/options/inbox/connect">
         <label class="opt-fieldlabel sg" for="imap_email">Your email address</label>

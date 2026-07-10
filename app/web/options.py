@@ -207,6 +207,28 @@ def inbox_channels(
     return RedirectResponse("/options#inbox", status_code=303)
 
 
+@router.post("/inbox/test-ping")
+def inbox_test_ping(
+    request: Request,
+    user: User = Depends(require_user),
+):
+    """Send one test ping over the user's saved channels — proof the watcher
+    can actually reach them before a real interview email needs to."""
+    from app.inbox import send_test_ping
+
+    if not is_premium(user):
+        add_flash(request, "The inbox watcher is a Premium feature.", "error")
+        return RedirectResponse("/premium", status_code=303)
+    ok, label = send_test_ping(user)
+    if ok:
+        add_flash(request, f"🔔 Test ping sent via {label} — go check it arrived.",
+                  "success")
+    else:
+        add_flash(request, f"Couldn't deliver a test ping via {label} — check the "
+                           "ping settings above (and Save them) first.", "error")
+    return RedirectResponse("/options#inbox", status_code=303)
+
+
 @router.post("/inbox/disconnect")
 def inbox_disconnect(
     request: Request,

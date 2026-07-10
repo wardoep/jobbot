@@ -348,6 +348,23 @@ def _ping(user: User, html: str, text: str) -> bool:
     return delivered
 
 
+def send_test_ping(user: User) -> tuple[bool, str]:
+    """A hand-triggered test of the ping pipeline (Options → Inbox watcher →
+    "Send a test ping", or `manage.py test-ping`): delivers a hello over the
+    user's saved channels so they can confirm pings actually reach them BEFORE
+    a real interview email depends on it. Returns (delivered, channel label)."""
+    channels = [c for c in (user.inbox_ping_channels or []) if c in PING_CHANNELS]
+    label = " + ".join(channels) if channels else (
+        "Telegram" if user.telegram_chat_id else "email")
+    html = ("🔔 <b>Test ping from JobBot</b> — this is exactly how the inbox "
+            "watcher will reach you about interviews, offers and rejections. "
+            "It's working!")
+    text = ("Test ping from JobBot — this is exactly how the inbox watcher "
+            "will reach you about interviews, offers and rejections. "
+            "It's working!")
+    return _ping(user, html, text), label
+
+
 @dataclass
 class InboxReport:
     email: str
