@@ -18,13 +18,14 @@ from __future__ import annotations
 import io
 import logging
 import re
+from datetime import date
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import RedirectResponse, Response
 
 from app.assist import LLMError, build_application_kit, tailor_resume_structured
-from app.models import ApplicationKit, User
+from app.models import ApplicationKit, Resume, User
 from app.web.deps import add_flash, get_db, render, require_user
 from sqlalchemy.orm import Session as SessionType
 
@@ -115,12 +116,24 @@ def download_artifact(
     content = row.content
     resume = content.get("resume") or {}
     name = resume.get("name") or "resume"
+    # Kit downloads come out in the look the user saved in the resume builder
+    # (their newest resume that has one), falling back to Modern.
+    look = (
+        db.query(Resume.look)
+        .filter(Resume.user_id == user.id, Resume.look.isnot(None))
+        .order_by(Resume.uploaded_at.desc())
+        .limit(1)
+        .scalar()
+    ) or "modern"
     if kind == "resume":
-        blob = _resume_pdf(resume) if ext == "pdf" else _resume_docx(resume)
+        blob = (_resume_pdf(resume, look=look) if ext == "pdf"
+                else _resume_docx(resume, look=look))
         base = f"{name} - tailored resume"
     else:
         letter = content.get("cover_letter") or ""
-        blob = _letter_pdf(letter) if ext == "pdf" else _letter_docx(letter)
+        head = {"name": resume.get("name") or "", "contact": resume.get("contact") or ""}
+        blob = (_letter_pdf(letter, look=look, **head) if ext == "pdf"
+                else _letter_docx(letter, look=look, **head))
         base = f"{name} - cover letter"
 
     safe = re.sub(r"[^A-Za-z0-9 ._-]+", "", base).strip() or "document"
@@ -160,26 +173,31 @@ def _docx_bottom_border(p, color: str, sz: int):
 
 def _resume_docx(data: dict, look: str | None = None) -> bytes:
     """The tailored structured resume as a clean, ATS-safe Word document, styled
-    to match the builder look when one is given."""
+    to match the builder look when one is given. Sized with the same one-page
+    scale the PDF settles on (Word can't measure its own pages)."""
     import docx
     from docx.enum.text import WD_ALIGN_PARAGRAPH
     from docx.shared import Inches, Pt, RGBColor
 
     st = _DOCX_LOOKS.get(look) or _DOCX_LOOKS[None]
     accent = st["accent"]
+    k = _resume_fit_scale(data, look)
     d = docx.Document()
     style = d.styles["Normal"]
     style.font.name = st["font"]
-    style.font.size = Pt(10.5)
+    style.font.size = Pt(round(10.5 * k, 1))
+    for s in d.sections:
+        s.left_margin = s.right_margin = Inches(0.7)
+        s.top_margin = s.bottom_margin = Inches(0.7)
 
     def para(text, *, into=None, size=10.5, bold=False, color=None, space_after=4):
         p = (into if into is not None else d).add_paragraph()
         run = p.add_run(text)
         run.bold = bold
-        run.font.size = Pt(size)
+        run.font.size = Pt(round(size * k, 1))
         if color:
             run.font.color.rgb = RGBColor(*color)
-        p.paragraph_format.space_after = Pt(space_after)
+        p.paragraph_format.space_after = Pt(round(space_after * k, 1))
         return p
 
     def heading(text, *, into=None):
@@ -201,6 +219,32 @@ def _resume_docx(data: dict, look: str | None = None) -> bytes:
                 p.paragraph_format.space_after = Pt(1)
         p = (into if into is not None else d).add_paragraph()
         p.paragraph_format.space_after = Pt(2)
+
+    def skills_table(sec):
+        """Skills in 2-3 horizontal columns (a borderless table, column-major),
+        matching the on-screen preview. Main flow only — the two-column look's
+        sidebar keeps its vertical list."""
+        heading(sec.get("heading") or "")
+        items = [b for ent in sec.get("entries") or []
+                 for b in ent.get("bullets") or []]
+        if not items:
+            return
+        ncols = 3 if len(items) >= 6 else 2 if len(items) >= 2 else 1
+        nrows = -(-len(items) // ncols)
+        t = d.add_table(rows=nrows, cols=ncols)
+        t.allow_autofit = False
+        for c in range(ncols):
+            for r in range(nrows):
+                cell = t.cell(r, c)
+                cell.width = Inches(7.1 / ncols)
+                idx = c * nrows + r
+                if idx < len(items):
+                    p = cell.paragraphs[0]
+                    run = p.add_run(f"•  {items[idx]}")
+                    run.font.size = Pt(round(10 * k, 1))
+                    p.paragraph_format.space_after = Pt(1)
+        spacer = d.add_paragraph()
+        spacer.paragraph_format.space_after = Pt(2)
 
     # ---- header --------------------------------------------------------
     if st["bar"]:  # Modern's accent bar, as a full-width rule above the name
@@ -227,8 +271,8 @@ def _resume_docx(data: dict, look: str | None = None) -> bytes:
         table = d.add_table(rows=1, cols=2)
         table.allow_autofit = False
         side_cell, main_cell = table.rows[0].cells
-        side_cell.width = Inches(2.2)
-        main_cell.width = Inches(4.5)
+        side_cell.width = Inches(2.3)
+        main_cell.width = Inches(4.8)
         if data.get("contact"):
             heading("Contact", into=side_cell)
             para(data["contact"], into=side_cell, size=9, space_after=8)
@@ -250,20 +294,59 @@ def _resume_docx(data: dict, look: str | None = None) -> bytes:
             heading("Summary")
             para(data["summary"], space_after=8)
         for sec in sections:
-            section_block(sec)
+            if _is_skills(sec):
+                skills_table(sec)
+            else:
+                section_block(sec)
 
     buf = io.BytesIO()
     d.save(buf)
     return buf.getvalue()
 
 
-def _letter_docx(text: str) -> bytes:
+def _letter_docx(text: str, look: str | None = None,
+                 name: str = "", contact: str = "") -> bytes:
+    """The cover letter as a Word document — letterhead styled to the look."""
     import docx
-    from docx.shared import Pt
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    from docx.shared import Inches, Pt, RGBColor
 
+    st = _DOCX_LOOKS.get(look) or _DOCX_LOOKS[None]
     d = docx.Document()
-    d.styles["Normal"].font.name = "Calibri"
+    d.styles["Normal"].font.name = st["font"]
     d.styles["Normal"].font.size = Pt(11)
+    for s in d.sections:
+        s.left_margin = s.right_margin = Inches(0.8)
+        s.top_margin = s.bottom_margin = Inches(0.8)
+
+    def para(text, *, size=11, bold=False, color=None, space_after=6):
+        p = d.add_paragraph()
+        run = p.add_run(text)
+        run.bold = bold
+        run.font.size = Pt(size)
+        if color:
+            run.font.color.rgb = RGBColor(*color)
+        if look and st["center"]:
+            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p.paragraph_format.space_after = Pt(space_after)
+        return p
+
+    if look:
+        if st["bar"]:  # Modern's accent bar, as a full-width rule up top
+            bar = d.add_paragraph()
+            bar.paragraph_format.space_after = Pt(8)
+            _docx_bottom_border(bar, "4F46E5", 20)
+        if name:
+            para(name, size=15, bold=True, space_after=1)
+        if contact:
+            p = para(contact, size=9, color=(110, 120, 140), space_after=10)
+            accent_hex = "%02X%02X%02X" % (st["accent"] or (190, 196, 210))
+            _docx_bottom_border(p, accent_hex, 8)
+        today = date.today()
+        p = para(f"{today.strftime('%B')} {today.day}, {today.year}",
+                 size=10, color=(80, 90, 115), space_after=14)
+        p.alignment = None  # the date stays left even in the centered classic look
+
     for part in (text or "").split("\n"):
         p = d.add_paragraph(part)
         p.paragraph_format.space_after = Pt(6 if part.strip() else 0)
@@ -304,7 +387,14 @@ def _is_skills(sec: dict) -> bool:
     return "skill" in (sec.get("heading") or "").lower()
 
 
-def _resume_pdf(data: dict, look: str | None = None) -> bytes:
+# Shrink steps tried, in order, until the resume fits ONE page. 0.75 is the
+# readability floor — a resume that still overflows there keeps its 2nd page.
+_FIT_STEPS = (1.0, 0.95, 0.9, 0.85, 0.8, 0.75)
+
+
+def _render_resume_pdf(data: dict, look: str | None, k: float):
+    """Render the resume once at scale k (fonts, line heights and gaps all
+    multiply by k) and return the FPDF object — the fit loop checks .page."""
     st = _PDF_LOOKS.get(look) or _PDF_LOOKS[None]
     fam, accent, align = st["font"], st["accent"], st["align"]
     pdf = _pdf_doc()
@@ -315,10 +405,10 @@ def _resume_pdf(data: dict, look: str | None = None) -> bytes:
     def mc(txt, *, size, h, style="", color, align="L", indent=0.0):
         """One text block, always starting at the left margin — fpdf leaves the
         cursor at the cell's right edge, which used to clip the next block."""
-        pdf.set_font(fam, style, size)
+        pdf.set_font(fam, style, size * k)
         pdf.set_text_color(*color)
         pdf.set_x(pdf.l_margin + indent)
-        pdf.multi_cell(width() - indent, h, txt, align=align)
+        pdf.multi_cell(width() - indent, h * k, txt, align=align)
 
     def heading(txt):
         mc((txt or "").upper(), size=10.2, h=5.6, style="B", color=accent)
@@ -326,14 +416,14 @@ def _resume_pdf(data: dict, look: str | None = None) -> bytes:
             pdf.set_draw_color(205, 210, 222)
             pdf.line(pdf.l_margin, pdf.get_y() + 0.4,
                      pdf.l_margin + width(), pdf.get_y() + 0.4)
-            pdf.ln(2.2)
+            pdf.ln(2.2 * k)
         else:
-            pdf.ln(0.5)
+            pdf.ln(0.5 * k)
 
     def summary_block():
         heading("Summary")
         mc(data["summary"], size=9.6, h=5.0, color=(45, 52, 70))
-        pdf.ln(2.5)
+        pdf.ln(2.5 * k)
 
     def section_block(sec, *, compact=False):
         heading(sec.get("heading") or "")
@@ -346,14 +436,39 @@ def _resume_pdf(data: dict, look: str | None = None) -> bytes:
             for b in ent.get("bullets") or []:
                 mc(f"•  {b}", size=8.8 if compact else 9.4, h=4.9,
                    color=(45, 52, 70), indent=3)
-            pdf.ln(1.2)
-        pdf.ln(1.4)
+            pdf.ln(1.2 * k)
+        pdf.ln(1.4 * k)
+
+    def skills_block(sec):
+        """Skills flow into 2-3 horizontal columns (column-major), matching the
+        on-screen preview — not one long vertical list."""
+        heading(sec.get("heading") or "")
+        items = [b for ent in sec.get("entries") or []
+                 for b in ent.get("bullets") or []]
+        if not items:
+            pdf.ln(1.4 * k)
+            return
+        ncols = 3 if len(items) >= 6 else 2 if len(items) >= 2 else 1
+        rows = -(-len(items) // ncols)
+        col_w = width() / ncols
+        y0 = pdf.get_y()
+        y_end = y0
+        pdf.set_font(fam, "", 9.4 * k)
+        pdf.set_text_color(45, 52, 70)
+        for c in range(ncols):
+            pdf.set_y(y0)
+            for item in items[c * rows:(c + 1) * rows]:
+                pdf.set_x(pdf.l_margin + c * col_w)
+                pdf.multi_cell(col_w - 4, 4.9 * k, f"•  {item}")
+            y_end = max(y_end, pdf.get_y())
+        pdf.set_y(y_end)
+        pdf.ln(1.4 * k)
 
     # ---- header: bar (modern) / name / headline / contact -------------------
     if st["bar"]:
         pdf.set_fill_color(*accent)
-        pdf.rect(pdf.l_margin, pdf.get_y(), 28, 2.4, style="F")
-        pdf.ln(6.5)
+        pdf.rect(pdf.l_margin, pdf.get_y(), 28, 2.4 * k, style="F")
+        pdf.ln(6.5 * k)
     if data.get("name"):
         mc(data["name"], size=17, h=7.5, style="B", color=(20, 24, 40), align=align)
     if data.get("headline"):
@@ -362,10 +477,10 @@ def _resume_pdf(data: dict, look: str | None = None) -> bytes:
     if data.get("contact") and not st["twocol"]:
         mc(data["contact"], size=8.8, h=4.8, color=(120, 128, 145), align=align)
     if st["rule"]:
-        pdf.ln(1.5)
+        pdf.ln(1.5 * k)
         pdf.set_draw_color(190, 196, 210)
         pdf.line(pdf.l_margin, pdf.get_y(), pdf.w - pdf.r_margin, pdf.get_y())
-    pdf.ln(3 if look != "minimal" else 5)
+    pdf.ln((3 if look != "minimal" else 5) * k)
 
     sections = data.get("sections") or []
 
@@ -380,7 +495,7 @@ def _resume_pdf(data: dict, look: str | None = None) -> bytes:
         if data.get("contact"):
             heading("Contact")
             mc(data["contact"], size=8.8, h=4.8, color=(45, 52, 70))
-            pdf.ln(2.5)
+            pdf.ln(2.5 * k)
         for sec in sections:
             if _is_skills(sec):
                 section_block(sec, compact=True)
@@ -407,19 +522,71 @@ def _resume_pdf(data: dict, look: str | None = None) -> bytes:
         if data.get("summary"):
             summary_block()
         for sec in sections:
-            section_block(sec)
+            if _is_skills(sec):
+                skills_block(sec)
+            else:
+                section_block(sec)
 
+    return pdf
+
+
+def _resume_pdf(data: dict, look: str | None = None) -> bytes:
+    for k in _FIT_STEPS:
+        pdf = _render_resume_pdf(data, look, k)
+        if pdf.page == 1:
+            break
     return bytes(pdf.output())
 
 
-def _letter_pdf(text: str) -> bytes:
+def _resume_fit_scale(data: dict, look: str | None = None) -> float:
+    """The scale at which this resume fits one PDF page — the Word builder uses
+    it too (python-docx has no layout engine to measure pages with)."""
+    for k in _FIT_STEPS:
+        if _render_resume_pdf(data, look, k).page == 1:
+            return k
+    return _FIT_STEPS[-1]
+
+
+def _letter_pdf(text: str, look: str | None = None,
+                name: str = "", contact: str = "") -> bytes:
+    """The cover letter as a PDF — with a letterhead (name, contact, date)
+    styled to the given look when one is passed."""
+    st = _PDF_LOOKS.get(look) or _PDF_LOOKS[None]
+    fam, accent, align = st["font"], st["accent"], st["align"]
     pdf = _pdf_doc()
     w = pdf.w - pdf.l_margin - pdf.r_margin
-    pdf.set_font("dj", "", 10.6)
-    pdf.set_text_color(35, 42, 62)
+
+    def mc(txt, *, size, h, style="", color, align="L"):
+        # always restart at the left margin — fpdf leaves the cursor at the
+        # right edge, which used to clip consecutive paragraphs off-page
+        pdf.set_font(fam, style, size)
+        pdf.set_text_color(*color)
+        pdf.set_x(pdf.l_margin)
+        pdf.multi_cell(w, h, txt, align=align)
+
+    if look:
+        if st["bar"]:
+            pdf.set_fill_color(*accent)
+            pdf.rect(pdf.l_margin, pdf.get_y(), 28, 2.4, style="F")
+            pdf.ln(6.5)
+        if name:
+            mc(name, size=15, h=6.8, style="B", color=(20, 24, 40), align=align)
+        if contact:
+            mc(contact, size=8.8, h=4.8, color=(120, 128, 145), align=align)
+        pdf.ln(2)
+        pdf.set_draw_color(*accent)  # the look's signature color as the divider
+        pdf.set_line_width(0.5)
+        pdf.line(pdf.l_margin, pdf.get_y(), pdf.w - pdf.r_margin, pdf.get_y())
+        pdf.set_line_width(0.2)
+        pdf.ln(6)
+        today = date.today()
+        mc(f"{today.strftime('%B')} {today.day}, {today.year}",
+           size=9.6, h=5.0, color=(80, 90, 115))
+        pdf.ln(4)
+
     for part in (text or "").split("\n"):
         if part.strip():
-            pdf.multi_cell(w, 5.6, part)
+            mc(part, size=10.6, h=5.6, color=(35, 42, 62))
         else:
             pdf.ln(3.4)
     return bytes(pdf.output())
