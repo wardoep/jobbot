@@ -101,7 +101,10 @@ class JSearchSource(JobSource):
                     country=item.get("job_country"),
                     location=location,
                     work_type="Remote" if remote else infer_work_type(title, location, description),
-                    salary=_min_salary(item),
+                    salary=_num(item.get("job_min_salary")),
+                    salary_min=_num(item.get("job_min_salary")),
+                    salary_max=_num(item.get("job_max_salary")),
+                    salary_currency=(item.get("job_salary_currency") or None),
                     posted_date=_parse_date(item.get("job_posted_at_datetime_utc")),
                     url=item.get("job_apply_link"),
                     description=description,
@@ -110,8 +113,7 @@ class JSearchSource(JobSource):
         return jobs
 
 
-def _min_salary(item: dict):
-    val = item.get("job_min_salary")
+def _num(val):
     try:
         return int(val) if val else None
     except (TypeError, ValueError):

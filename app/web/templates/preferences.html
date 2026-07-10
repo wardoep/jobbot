@@ -198,6 +198,8 @@
           {% for v, l in salary_presets %}<option value="{{ v }}" {% if cur_sal == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
           {% if cur_sal and not sal_ns.preset %}<option value="{{ cur_sal }}" selected>${{ pref.salary_min }}</option>{% endif %}
         </select>
+        <p class="pf-hint" style="margin:6px 0 0">Hourly jobs count by their yearly
+          equivalent — $25/hr ≈ $52k — so they're never dropped just for being hourly.</p>
       </div>
 
       <div class="pf-block">

@@ -74,6 +74,22 @@ class FilterPrefs:
         )
 
 
+def annualized_salary(amount: int) -> Optional[int]:
+    """The yearly equivalent of a posted pay figure, best-effort.
+
+    Sources quote pay in whatever unit the posting used: hourly wages come in
+    as numbers like 22, weekly trucking pay as 1,500, annual salaries as
+    65,000. Amounts up to $200 can only be hourly — annualize at 40 h/week.
+    The 200–10,000 band is ambiguous ($1,500/week vs $1,500/month) — return
+    None so callers never REJECT a job on a unit we'd only be guessing at.
+    """
+    if amount <= 200:
+        return amount * 2080  # 40 hours x 52 weeks
+    if amount < 10_000:
+        return None
+    return amount
+
+
 def passes_filters(
     job: Job, prefs: FilterPrefs, today: Optional[date] = None
 ) -> tuple[bool, Optional[str]]:
@@ -113,9 +129,14 @@ def passes_filters(
             return False, f"posted/found {(today - d).days}d ago > {prefs.posted_within_days}d"
 
     # --- salary minimum -----------------------------------------------------
+    # Postings quote pay in mixed units (hourly wages, weekly trucking pay,
+    # annual salaries) — compare the YEARLY equivalent so an hourly job is
+    # never rejected just because "$22" looks tiny next to "$40,000".
     if prefs.salary_min is not None and job.salary is not None:
-        if job.salary < prefs.salary_min:
-            return False, f"salary {job.salary} < {prefs.salary_min}"
+        annual = annualized_salary(job.salary)
+        if annual is not None and annual < prefs.salary_min:
+            note = f" (~${annual:,}/yr)" if annual != job.salary else ""
+            return False, f"salary {job.salary}{note} < {prefs.salary_min}"
 
     # --- keywords / role titles (job must match at least one) --------------
     # Resume-derived roles (auto_keywords) and the user's own keywords form

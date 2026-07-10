@@ -97,19 +97,26 @@ _SALARY_SYMBOLS = {"USD": "$", "CAD": "CA$", "AUD": "A$", "EUR": "€", "GBP": "
 
 
 def _salary_label(job: Job) -> str | None:
-    """Compact salary range for a board row, e.g. "$140–175k" / "$106k+".
+    """Compact pay label for a board row: "$140–175k", "$106k+", "$18–22/hr".
 
     Uses the ATS salary_min/salary_max when present, falling back to the
-    legacy single `salary` column. Returns None (row shows nothing) when the
-    job has no plausible annual figure — never renders junk like "$18".
+    legacy single `salary` column. Amounts up to $200 can only be hourly
+    wages, so they're shown as such. The ambiguous 200–10k band (weekly?
+    monthly?) still renders nothing — never guess a unit on screen.
     """
     lo = job.salary_min or job.salary
     hi = job.salary_max
-    if not lo or lo < 10_000:
+    if not lo:
         return None
     cur = (job.salary_currency or "USD").upper()
     sym = _SALARY_SYMBOLS.get(cur)
     prefix = sym if sym else f"{cur} "
+    if lo <= 200:  # hourly wage
+        if hi and lo < hi <= 500:
+            return f"{prefix}{lo}–{hi}/hr"
+        return f"{prefix}{lo}/hr"
+    if lo < 10_000:
+        return None
     if hi and hi > lo:
         return f"{prefix}{round(lo / 1000)}–{round(hi / 1000)}k"
     if hi == lo:
