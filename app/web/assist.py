@@ -113,9 +113,8 @@ def job_detail(
         return RedirectResponse("/dashboard", status_code=303)
 
     match = db.query(Match).filter_by(user_id=user.id, job_id=job_id).first()
-    starred = (
-        db.query(Star.id).filter_by(user_id=user.id, job_id=job_id).first() is not None
-    )
+    star = db.query(Star).filter_by(user_id=user.id, job_id=job_id).first()
+    starred = star is not None
     answers = (
         db.query(ApplicationAnswer)
         .filter_by(user_id=user.id, job_id=job_id)
@@ -135,6 +134,8 @@ def job_detail(
     return render(
         request, "job_detail.html", user=user, job=job, match=match,
         starred=starred, answers=answers,
+        star_status=(star.status if star else None),
+        applied_at=(star.created_at if star and star.status == "applied" else None),
         has_resume=bool(resume_text),
         llm_ready=settings.llm_configured, model=settings.openai_model,
         breakdown=breakdown,

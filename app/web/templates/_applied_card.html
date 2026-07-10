@@ -1,0 +1,26 @@
+{# The green celebration that replaces a match card the instant it's marked
+   applied: holds a beat so the user SEES it worked, then collapses out of the
+   grid. Also floats a success toast (same .flash styling the server uses).
+   Returned by set_status for HTMX requests with status=applied. #}
+<div class="mg-card mg-done">
+  <div class="mg-done-check">✓</div>
+  <div class="mg-done-title sg">Applied!</div>
+  <div class="mg-done-sub">Moved to your <a href="/matches?tab=applied">Applied tab</a></div>
+  <script>
+    (function () {
+      var s = document.currentScript;
+      var card = (s && s.closest('.mg-card')) ||
+                 document.querySelector('.mg-done:not([data-wired])');
+      if (card) card.setAttribute('data-wired', '1');
+      var toast = document.createElement('div');
+      toast.className = 'flash success';
+      toast.textContent = '✓ Applied — moved to your Applied tab.';
+      document.body.appendChild(toast);
+      setTimeout(function () { toast.classList.add('toast-out'); }, 2600);
+      setTimeout(function () { toast.remove(); }, 3100);
+      if (!card) return;
+      setTimeout(function () { card.classList.add('out'); }, 1500);
+      setTimeout(function () { card.remove(); }, 1980);
+    })();
+  </script>
+</div>

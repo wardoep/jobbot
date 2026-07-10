@@ -642,12 +642,21 @@ def set_status(
     # to surface the next undecided card. Everything else keeps the board redirect.
     if next == "review":
         return RedirectResponse("/review", status_code=303)
-    # The job page's Application-kit "Mark applied" round-trips back to the job.
+    # The job page's apply bar / Application-kit round-trip back to the job,
+    # with a toast so it's unmistakable that the move happened.
     if next == "job":
+        if status == "applied":
+            add_flash(request, "✓ Applied — it's in your Applied tab.", "success")
+        elif status in ("", "clear"):
+            add_flash(request, "Moved back to For you.", "success")
         return RedirectResponse(f"/jobs/{job_id}", status_code=303)
-    # HTMX card actions (the matches grid): empty body so hx-swap="outerHTML"
-    # on the card removes it in place — no page reload, the grid reflows.
+    # HTMX card actions (the matches grid). Applying gets a celebration: a green
+    # "Applied!" card that holds a beat then slides out, plus a success toast
+    # (htmx runs the fragment's script). Everything else keeps the silent
+    # empty-body removal — hx-swap="outerHTML" on the card clears it in place.
     if request.headers.get("HX-Request"):
+        if status == "applied":
+            return render(request, "_applied_card.html", user=user)
         return HTMLResponse("")
     dest = tab if tab in VALID_TABS else "foryou"
     return RedirectResponse(f"/matches?tab={dest}", status_code=303)

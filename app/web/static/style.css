@@ -1899,3 +1899,88 @@ tbody tr:hover { background: var(--inset); }
 .trial-acts { display: flex; gap: 16px; align-items: center; flex: none; }
 .trial-acts a { font-family: var(--font-display); font-weight: 700; font-size: 12.5px; }
 .trial-acts .tb-stop { color: var(--faint); }
+
+/* ------------------------------------------------- APPLY FLOW (2026-07-10) */
+/* Card Apply pill + inline "Did you apply?" confirm, the green applied
+   celebration card, the Applied-tab tint, and the job page apply bar.
+   Tokens only — correct in light and dark. */
+
+/* -- matches grid: the Apply pill and confirm row -- */
+.mg-card .mg-apply, .mg-card .mg-confirm { position: relative; z-index: 2; }
+.mg-apply {
+  display: inline-flex; align-items: center;
+  background: var(--blue); color: #fff;
+  border-radius: 9px; padding: 8px 11px; margin-right: 4px;
+  font-weight: 700; font-size: 12.5px; line-height: 1; text-decoration: none;
+  box-shadow: 0 4px 10px -4px rgba(15, 23, 48, .35);
+  white-space: nowrap;
+}
+.mg-apply:hover { filter: brightness(1.08); }
+.mg-confirm {
+  display: none; margin-top: auto; padding-top: 10px;
+  align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.mg-card.asking .mg-foot, .mg-card.asking .mg-meta { display: none; }
+.mg-card.asking .mg-confirm { display: flex; }
+.mg-q { font-weight: 700; font-size: 13px; color: var(--text); }
+.mg-yes {
+  background: var(--green-bg); color: var(--green);
+  border: 1px solid var(--green-bd); border-radius: 9px;
+  padding: 7px 11px; font-weight: 700; font-size: 12.5px; line-height: 1;
+  cursor: pointer; box-shadow: none;
+}
+.mg-yes:hover { filter: brightness(1.05); }
+.mg-not, .apl-not, .apl-undo {
+  background: none; border: 0; padding: 6px 4px; cursor: pointer;
+  color: var(--faint); font-weight: 600; font-size: 12.5px;
+  text-decoration: underline; box-shadow: none;
+}
+.mg-not:hover, .apl-not:hover, .apl-undo:hover { color: var(--text); background: none; filter: none; }
+
+/* -- the green "Applied!" celebration that replaces the card -- */
+.mg-done {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px; text-align: center;
+  background: var(--green-bg); border-color: var(--green-bd);
+  transition: opacity .4s ease, transform .4s ease;
+}
+.mg-done.out { opacity: 0; transform: scale(.92); }
+.mg-done-check {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--green); color: var(--green-bg);
+  display: grid; place-items: center; font-size: 20px; font-weight: 800;
+}
+.mg-done-title { font-weight: 800; font-size: 17px; color: var(--green); }
+.mg-done-sub { font-size: 12.5px; color: var(--muted); }
+.mg-done-sub a { color: var(--link); font-weight: 600; }
+.flash.toast-out {
+  opacity: 0; transform: translate(-50%, -8px);
+  transition: opacity .45s ease, transform .45s ease;
+}
+
+/* -- Applied tab: cards clearly read as done -- */
+.mg-card.applied { border-color: var(--green-bd); box-shadow: inset 0 0 0 1px var(--green-bd); }
+
+/* -- job page apply bar -- */
+.apl-bar, .apl-done { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.apl-info { flex: 1; min-width: min(220px, 100%); }
+.apl-title { font-weight: 700; font-size: 15.5px; color: var(--text); }
+.apl-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.apl-sub a { color: var(--link); font-weight: 600; }
+.apl-cta { font-size: 15px; padding: 12px 22px; font-weight: 700; flex: none; }
+.apl-confirm {
+  flex-basis: 100%; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  border-top: 1px solid var(--border); padding-top: 12px; margin-top: 2px;
+}
+.apl-confirm[hidden] { display: none !important; }
+.apl-q { font-weight: 700; font-size: 14px; color: var(--text); }
+.btn.apl-yes { background: var(--green); border-color: var(--green); color: var(--green-bg); }
+.btn.apl-yes:hover { filter: brightness(1.06); }
+.apl-done { background: var(--green-bg); border-color: var(--green-bd); }
+.apl-check {
+  width: 38px; height: 38px; border-radius: 50%; flex: none;
+  background: var(--green); color: var(--green-bg);
+  display: grid; place-items: center; font-weight: 800; font-size: 18px;
+}
+.apl-done .apl-title { color: var(--green); }
+.apl-undo { font-size: 13px; }

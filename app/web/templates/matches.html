@@ -35,7 +35,7 @@
 
 {# One square grid card. `acts` picks the action set per tab. #}
 {% macro card(r, tab, acts) %}
-<div class="mg-card {{ 'dim' if tab == 'refused' }}">
+<div class="mg-card {{ 'dim' if tab == 'refused' }}{{ ' applied' if acts == 'applied' }}">
   <a class="mg-link" href="/jobs/{{ r.job.id }}" aria-label="{{ r.job.title }}"></a>
   <div class="mg-top">
     {{ company_pic(r.avatar_idx, r.initial, r.job.company, r.job.url, 'lg') }}
@@ -50,13 +50,17 @@
   <div class="mg-foot">
     {% if r.salary_label %}<span class="mt-sal">{{ r.salary_label }}</span>{% else %}<span></span>{% endif %}
     <div class="mg-acts">
-      {% if acts == 'foryou' %}
-        {{ card_act(r.job.id, tab, 'interested', '☆', 'Save', 'star') }}
-        {{ card_act(r.job.id, tab, 'applied', '✓', 'Mark applied', 'check') }}
-        {{ card_act(r.job.id, tab, 'rejected', '×', 'Not interested', 'x') }}
-      {% elif acts == 'saved' %}
-        {{ card_act(r.job.id, tab, 'clear', '★', 'Unsave — back to For you', 'star on') }}
-        {{ card_act(r.job.id, tab, 'applied', '✓', 'Mark applied', 'check') }}
+      {% if acts in ('foryou', 'saved') %}
+        {# Apply opens the real posting in a new tab AND flips the card into
+           the "Did you apply?" confirm (mgAsk) — honest tracking, one look. #}
+        <a class="mg-apply sg" href="{{ r.job.url or '/jobs/' ~ r.job.id }}"
+           target="_blank" rel="noopener" onclick="mgAsk(this)"
+           title="Open the posting and apply">Apply ↗</a>
+        {% if acts == 'foryou' %}
+          {{ card_act(r.job.id, tab, 'interested', '☆', 'Save', 'star') }}
+        {% else %}
+          {{ card_act(r.job.id, tab, 'clear', '★', 'Unsave — back to For you', 'star on') }}
+        {% endif %}
         {{ card_act(r.job.id, tab, 'rejected', '×', 'Not interested', 'x') }}
       {% elif acts == 'applied' %}
         {{ card_act(r.job.id, tab, 'interested', '☆', 'Move back to Saved', 'star') }}
@@ -74,6 +78,19 @@
   {% if acts == 'applied' %}
     <div class="mg-meta"><span class="mt-applied-chip">✓ Applied</span>
       {% if r.decided_ago %}<span class="mt-meta">{{ r.decided_ago }}</span>{% endif %}</div>
+  {% endif %}
+  {% if acts in ('foryou', 'saved') %}
+    {# Shown (via .asking) after the Apply link opens the posting. #}
+    <div class="mg-confirm">
+      <span class="mg-q">Did you apply?</span>
+      <form class="mg-act" hx-post="/matches/{{ r.job.id }}/status"
+            hx-target="closest .mg-card" hx-swap="outerHTML swap:150ms">
+        <input type="hidden" name="tab" value="{{ tab }}">
+        <button type="submit" name="status" value="applied" class="mg-yes sg">✓ Yes</button>
+      </form>
+      <button type="button" class="mg-not"
+              onclick="this.closest('.mg-card').classList.remove('asking')">not yet</button>
+    </div>
   {% endif %}
 </div>
 {% endmacro %}
@@ -232,4 +249,15 @@
 
 {# Real company pictures — shared resolver (see static/logos.js). #}
 <script src="/static/logos.js"></script>
+<script>
+  // The card's Apply link opens the posting in a new tab; back here the card
+  // flips its footer into the "Did you apply?" confirm. Only one card asks at
+  // a time — starting a new application quietly resets any earlier prompt.
+  function mgAsk(el) {
+    document.querySelectorAll('.mg-card.asking').forEach(function (c) {
+      c.classList.remove('asking');
+    });
+    el.closest('.mg-card').classList.add('asking');
+  }
+</script>
 {% endblock %}
