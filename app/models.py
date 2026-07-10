@@ -426,6 +426,11 @@ class Star(Base):
     )
     # e.g. "interested", "applied", "rejected"
     status: Mapped[str] = mapped_column(String(30), default="interested")
+    # The employer's reply, read by the inbox watcher (a Premium feature):
+    # "rejected" | "interview" | "offer"; NULL = no reply seen. Drives the
+    # Accepted/Rejected tabs while status == "applied"; any manual status
+    # action clears it (the user's own call always wins).
+    outcome: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     # When the post-apply follow-up nudge was sent (NULL = not yet; only
     # meaningful while status == "applied"). See app/followups.py.
     followup_at: Mapped[Optional[datetime]] = mapped_column(

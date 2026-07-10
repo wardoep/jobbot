@@ -436,6 +436,22 @@ def scan_user_inbox(session: SessionType, user: User) -> InboxReport:
             role = row["role"] or (job.title if job else "a role")
             link = f'<a href="{base}/jobs/{job.id}">{job.title}</a>' if job else role
 
+            # When the email maps to a job JobBot knows, the employer's reply
+            # also FILES the job: offer -> Accepted tab, rejection -> Rejected
+            # tab, interview -> a badge on the Applied card. The star stays
+            # status="applied" (they did apply); `outcome` drives the tabs.
+            # Only the inbox watcher sets outcome, so this whole behavior is
+            # Premium-only by construction (free accounts are never scanned).
+            def _file_outcome(outcome: str) -> None:
+                star = (session.query(Star)
+                        .filter_by(user_id=user.id, job_id=job.id).first())
+                if star is None:  # a reply implies an application we never saw
+                    star = Star(user_id=user.id, job_id=job.id, status="applied")
+                    session.add(star)
+                if star.status != "applied":
+                    star.status = "applied"
+                star.outcome = outcome
+
             html = text = None
             if kind == "application_confirmation":
                 if job is not None:
@@ -453,14 +469,23 @@ def scan_user_inbox(session: SessionType, user: User) -> InboxReport:
                                 "applied — saw your confirmation email.")
             elif kind in ("interview", "offer"):
                 nice = "🎉 Interview request" if kind == "interview" else "🎊 Job offer"
-                html = (f"{nice} — {link} @ {label}.<br>"
+                filed = ""
+                if job is not None:
+                    _file_outcome("offer" if kind == "offer" else "interview")
+                    filed = (" Moved it to your Accepted tab on JobBot."
+                             if kind == "offer" else "")
+                html = (f"{nice} — {link} @ {label}.{filed}<br>"
                         f"Email subject: “{cand['subject'][:150]}”")
-                text = (f"{nice.split(' ', 1)[1].capitalize()} — {role} @ {label}. "
-                        f"Email subject: {cand['subject'][:150]}")
+                text = (f"{nice.split(' ', 1)[1].capitalize()} — {role} @ {label}."
+                        f"{filed} Email subject: {cand['subject'][:150]}")
             elif kind == "rejection":
-                html = (f"📩 Looks like a rejection for {link} @ {label}. "
+                filed = ""
+                if job is not None:
+                    _file_outcome("rejected")
+                    filed = " Moved it to your Rejected tab on JobBot."
+                html = (f"📩 Looks like a rejection for {link} @ {label}.{filed} "
                         "Keep going — new matches land daily. 💪")
-                text = (f"Looks like a rejection for {role} @ {label}. "
+                text = (f"Looks like a rejection for {role} @ {label}.{filed} "
                         "Keep going — new matches land daily.")
 
             if html and pings < MAX_PINGS:

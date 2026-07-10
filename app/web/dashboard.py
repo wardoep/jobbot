@@ -33,7 +33,9 @@ router = APIRouter()
 
 # "refused" is a real Star status but no longer a browsable tab — a × dismissal
 # is permanent (the job just leaves the queue; there's no Refused tab to view/restore).
-VALID_TABS = ("foryou", "saved", "applied")
+# "accepted"/"rejected" are OUTCOME tabs (Premium): applied jobs the inbox
+# watcher filed after reading the employer's reply (offer / rejection email).
+VALID_TABS = ("foryou", "saved", "applied", "accepted", "rejected")
 # Star.status value behind each decided tab.
 _TAB_STATUS = {"saved": "interested", "applied": "applied", "refused": "rejected"}
 _ALLOWED_STATUS = frozenset(_TAB_STATUS.values())  # interested | applied | rejected
@@ -397,7 +399,8 @@ def matches(
     # Star rows keyed by job, for the Applied tab's "Applied 2d ago" meta.
     stars = {s.job_id: s for s in db.query(Star).filter_by(user_id=user.id)}
 
-    buckets: dict[str, list] = {"foryou": [], "saved": [], "applied": [], "refused": []}
+    buckets: dict[str, list] = {"foryou": [], "saved": [], "applied": [],
+                                "accepted": [], "rejected": [], "refused": []}
     for match, job in pairs:
         status = statuses.get(job.id)
         row = _row(match, job, status, cutoff)
@@ -411,12 +414,20 @@ def matches(
         row["fit_green"] = round(match.score or 0) >= 78
         star = stars.get(job.id)
         row["decided_ago"] = _rel_time(star.created_at) if star else ""
+        row["outcome"] = star.outcome if star else None
         if status is None:
             buckets["foryou"].append(row)
         elif status == "interested":
             buckets["saved"].append(row)
         elif status == "applied":
-            buckets["applied"].append(row)
+            # The inbox watcher files employer replies: an offer moves the job
+            # to Accepted, a rejection email to Rejected (Premium tabs).
+            if row["outcome"] == "offer":
+                buckets["accepted"].append(row)
+            elif row["outcome"] == "rejected":
+                buckets["rejected"].append(row)
+            else:
+                buckets["applied"].append(row)
         elif status == "rejected":
             buckets["refused"].append(row)
 
@@ -636,6 +647,9 @@ def set_status(
                 # the Applied tab's "Applied 2d ago" and the home activity
                 # feed date the transition, not the first decision.
                 star.created_at = datetime.now(timezone.utc)
+            # A manual status action always overrides the inbox watcher's
+            # filing — e.g. "↩ Back to Applied" on an Accepted/Rejected card.
+            star.outcome = None
         elif db.get(Job, job_id) is not None:  # never star a nonexistent job
             db.add(Star(user_id=user.id, job_id=job_id, status=status))
         db.commit()

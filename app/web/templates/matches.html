@@ -35,7 +35,7 @@
 
 {# One square grid card. `acts` picks the action set per tab. #}
 {% macro card(r, tab, acts) %}
-<div class="mg-card {{ 'dim' if tab == 'refused' }}{{ ' applied' if acts == 'applied' }}">
+<div class="mg-card {{ 'dim' if tab in ('refused', 'rejected') }}{{ ' applied' if acts in ('applied', 'accepted') }}">
   <a class="mg-link" href="/jobs/{{ r.job.id }}" aria-label="{{ r.job.title }}"></a>
   <div class="mg-top">
     {{ company_pic(r.avatar_idx, r.initial, r.job.company, r.job.url, 'lg') }}
@@ -65,6 +65,10 @@
         {{ card_act(r.job.id, tab, 'interested', '☆', 'Move back to Saved', 'star') }}
         {{ card_act(r.job.id, tab, 'clear', '↺', 'Reset — back to For you', 'undo') }}
         {{ card_act(r.job.id, tab, 'rejected', '×', 'Not interested', 'x') }}
+      {% elif acts in ('accepted', 'rejected') %}
+        {# Filed here by the inbox watcher — a manual action always wins. #}
+        {{ card_act(r.job.id, tab, 'applied', '↩', 'Back to Applied (filed wrong?)', 'undo') }}
+        {{ card_act(r.job.id, tab, 'rejected', '×', 'Remove from the board', 'x') }}
       {% elif acts == 'refused' %}
         <form class="mg-act" hx-post="/matches/{{ r.job.id }}/status"
               hx-target="closest .mg-card" hx-swap="outerHTML swap:150ms">
@@ -76,7 +80,14 @@
   </div>
   {% if acts == 'applied' %}
     <div class="mg-meta"><span class="mt-applied-chip">✓ Applied</span>
+      {% if r.outcome == 'interview' %}<span class="mt-outcome-chip good">🎤 Interview!</span>{% endif %}
       {% if r.decided_ago %}<span class="mt-meta">{{ r.decided_ago }}</span>{% endif %}</div>
+  {% elif acts == 'accepted' %}
+    <div class="mg-meta"><span class="mt-outcome-chip good">🎊 Offer received</span>
+      {% if r.decided_ago %}<span class="mt-meta">applied {{ r.decided_ago }}</span>{% endif %}</div>
+  {% elif acts == 'rejected' %}
+    <div class="mg-meta"><span class="mt-outcome-chip nope">📩 Employer said no</span>
+      {% if r.decided_ago %}<span class="mt-meta">applied {{ r.decided_ago }}</span>{% endif %}</div>
   {% endif %}
 </div>
 {% endmacro %}
@@ -108,6 +119,13 @@
     ('saved', '★ Saved', counts.saved),
     ('applied', 'Applied', counts.applied)
   ] %}
+  {# Outcome tabs (Premium): the inbox watcher files employer replies here. #}
+  {% if premium %}
+    {% set tabdefs = tabdefs + [
+      ('accepted', '🎊 Accepted', counts.accepted),
+      ('rejected', 'Rejected', counts.rejected)
+    ] %}
+  {% endif %}
   {% for key, label, count in tabdefs %}
     <a class="mt-tab sg {% if tab == key %}on{% endif %}" href="/matches?tab={{ key }}">
       {{- label }}{% if count is not none %} · {{ count }}{% endif -%}
@@ -199,12 +217,16 @@
   {% endif %}
 {% endif %}
 
-{# ---- SAVED / APPLIED / REFUSED: same card grid --------------------------- #}
-{% for key in ['saved', 'applied'] %}
+{# ---- SAVED / APPLIED / ACCEPTED / REJECTED: same card grid --------------- #}
+{% for key in ['saved', 'applied', 'accepted', 'rejected'] %}
   {% if tab == key %}
     {% if rows %}
-      {% if key == 'refused' %}
-        <div class="mt-note">Jobs you removed. Restore any to send it back to your queue.</div>
+      {% if key == 'accepted' %}
+        <div class="mt-note">Employers who came back with an interview outcome or offer —
+          filed automatically by your inbox watcher. 🎉</div>
+      {% elif key == 'rejected' %}
+        <div class="mt-note">Applications the employer declined — filed automatically when
+          the inbox watcher reads a rejection email. Their loss.</div>
       {% endif %}
       <div class="mg-grid">
         {% for r in rows %}{{ card(r, tab, key) }}{% endfor %}
@@ -222,11 +244,18 @@
           <div class="ttl sg">Nothing here yet</div>
           <p>Open a match, tailor it, and mark it applied to track it through your pipeline.</p>
         </div>
+      {% elif key == 'accepted' %}
+        <div class="mt-empty">
+          <div class="ico">🎊</div>
+          <div class="ttl sg">No offers yet — they're coming</div>
+          <p>When your inbox watcher spots an offer email, the job moves here on its own.</p>
+        </div>
       {% else %}
         <div class="mt-empty">
-          <div class="ico">🗂️</div>
-          <div class="ttl sg">No refused jobs</div>
-          <p>Jobs you dismiss with × land here, so you can undo it if you change your mind.</p>
+          <div class="ico">📭</div>
+          <div class="ttl sg">No rejections on file</div>
+          <p>If an employer emails a “no”, the inbox watcher files it here so your
+            Applied tab stays about what's still in play.</p>
         </div>
       {% endif %}
     {% endif %}
