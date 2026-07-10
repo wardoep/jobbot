@@ -455,6 +455,9 @@ def matches(
         rows = rows[:visible]
         counts["foryou"] = (1 if top_pick else 0) + len(rows)
 
+    # The Applied tab's live "tracking" strip (Premium): is the inbox watcher
+    # on, and when did it last look? Free accounts are never scanned.
+    watcher_on = bool(is_premium(user) and user.inbox_enabled and user.imap_email)
     return render(
         request,
         "matches.html",
@@ -466,6 +469,8 @@ def matches(
         top_pick=top_pick,
         new_today=new_today,
         hidden_premium=hidden_premium,
+        watcher_on=watcher_on,
+        watcher_checked=_rel_time(user.inbox_scanned_at) if watcher_on else "",
     )
 
 

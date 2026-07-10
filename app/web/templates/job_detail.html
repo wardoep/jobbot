@@ -45,7 +45,8 @@
   <div class="apl-check">✓</div>
   <div class="apl-info">
     <div class="apl-title sg">You applied{% if applied_at %} · {{ applied_at.strftime('%b %d') }}{% endif %}</div>
-    <div class="apl-sub">This job is in your <a href="/matches?tab=applied">Applied tab</a>.</div>
+    <div class="apl-sub">This job is in your <a href="/matches?tab=applied">Applied tab</a>{% if watcher_on %}
+      — <b style="color:var(--green)">👁 watching your inbox for their reply</b>{% endif %}.</div>
   </div>
   {% if job.url %}<a class="btn ghost" href="{{ job.url }}" target="_blank" rel="noopener">View posting ↗</a>{% endif %}
   <form method="post" action="/matches/{{ job.id }}/status" style="margin:0">

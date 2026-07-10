@@ -131,11 +131,14 @@ def job_detail(
     kit_row = (
         db.query(ApplicationKit).filter_by(user_id=user.id, job_id=job_id).first()
     )
+    from app.web.deps import is_premium
+
     return render(
         request, "job_detail.html", user=user, job=job, match=match,
         starred=starred, answers=answers,
         star_status=(star.status if star else None),
         applied_at=(star.created_at if star and star.status == "applied" else None),
+        watcher_on=bool(is_premium(user) and user.inbox_enabled and user.imap_email),
         has_resume=bool(resume_text),
         llm_ready=settings.llm_configured, model=settings.openai_model,
         breakdown=breakdown,

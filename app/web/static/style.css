@@ -1995,3 +1995,24 @@ tbody tr:hover { background: var(--inset); }
 }
 .mt-outcome-chip.good { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-bd); }
 .mt-outcome-chip.nope { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-bd); }
+
+/* ---------------------------------------- APPLIED TRACKING (2026-07-10) */
+/* The Premium "it's really watching" presence: pulsing chip on applied
+   cards + the watching strip above the Applied grid. */
+.mt-track-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  border-radius: 999px; padding: 3px 9px;
+  font-size: 11.5px; font-weight: 700; line-height: 1.4; white-space: nowrap;
+  background: var(--green-bg); color: var(--green); border: 1px solid var(--green-bd);
+}
+.mt-track-chip i {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--green);
+  animation: jbtrackpulse 2s ease-in-out infinite;
+}
+.mt-track-chip.lg { font-size: 12.5px; padding: 4px 11px; }
+.mt-watch { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+@keyframes jbtrackpulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .45; transform: scale(.72); }
+}
+@media (prefers-reduced-motion: reduce) { .mt-track-chip i { animation: none; } }

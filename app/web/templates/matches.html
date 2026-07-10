@@ -33,8 +33,9 @@
   {%- endif -%}
 {%- endmacro %}
 
-{# One square grid card. `acts` picks the action set per tab. #}
-{% macro card(r, tab, acts) %}
+{# One square grid card. `acts` picks the action set per tab. `tracking` adds
+   the pulsing chip that shows the inbox watcher is monitoring for a reply. #}
+{% macro card(r, tab, acts, tracking=false) %}
 <div class="mg-card {{ 'dim' if tab in ('refused', 'rejected') }}{{ ' applied' if acts in ('applied', 'accepted') }}">
   <a class="mg-link" href="/jobs/{{ r.job.id }}" aria-label="{{ r.job.title }}"></a>
   <div class="mg-top">
@@ -81,6 +82,8 @@
   {% if acts == 'applied' %}
     <div class="mg-meta"><span class="mt-applied-chip">✓ Applied</span>
       {% if r.outcome == 'interview' %}<span class="mt-outcome-chip good">🎤 Interview!</span>{% endif %}
+      {% if tracking %}<span class="mt-track-chip"
+        title="The inbox watcher is monitoring your email for this employer's reply"><i></i>Tracking</span>{% endif %}
       {% if r.decided_ago %}<span class="mt-meta">{{ r.decided_ago }}</span>{% endif %}</div>
   {% elif acts == 'accepted' %}
     <div class="mg-meta"><span class="mt-outcome-chip good">🎊 Offer received</span>
@@ -221,7 +224,20 @@
 {% for key in ['saved', 'applied', 'accepted', 'rejected'] %}
   {% if tab == key %}
     {% if rows %}
-      {% if key == 'accepted' %}
+      {% if key == 'applied' %}
+        {% if watcher_on %}
+          <div class="mt-note mt-watch">
+            <span class="mt-track-chip lg"><i></i>Watching your inbox</span>
+            Replies to these applications file themselves — interviews and offers land in
+            Accepted, rejections in Rejected.
+            {% if watcher_checked %}Last check {{ watcher_checked }}.{% endif %}
+          </div>
+        {% elif premium %}
+          <div class="mt-note">Want these tracked automatically? Turn on the
+            <a href="/options#inbox">inbox watcher</a> and replies — interviews, offers,
+            rejections — file themselves.</div>
+        {% endif %}
+      {% elif key == 'accepted' %}
         <div class="mt-note">Employers who came back with an interview outcome or offer —
           filed automatically by your inbox watcher. 🎉</div>
       {% elif key == 'rejected' %}
@@ -229,7 +245,7 @@
           the inbox watcher reads a rejection email. Their loss.</div>
       {% endif %}
       <div class="mg-grid">
-        {% for r in rows %}{{ card(r, tab, key) }}{% endfor %}
+        {% for r in rows %}{{ card(r, tab, key, tracking=(watcher_on and key == 'applied')) }}{% endfor %}
       </div>
     {% else %}
       {% if key == 'saved' %}
