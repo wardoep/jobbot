@@ -115,7 +115,7 @@ def _apply_ping_channels(request, user, ping_channels, ntfy_topic, discord_webho
     webhook = (discord_webhook or "").strip()[:500]
 
     if "ntfy" in chans and not topic:
-        return "Pick a topic name for ntfy (any word works, e.g. jobbot-eddie)."
+        return "Pick a topic name for ntfy (any word works, e.g. jobbot-alerts)."
     if "discord" in chans and not valid_webhook(webhook):
         return ("That doesn't look like a Discord webhook link — it should start "
                 "with https://discord.com/api/webhooks/…")

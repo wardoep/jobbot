@@ -5,7 +5,7 @@
 **No zip file arrived in this session.** I searched every upload location on this machine
 (home directory, `~/uploads/`, the app's upload folders, scratchpad, `/tmp`) — no archive newer
 than June 19 exists, and that one contains only old project scripts. The only file that matches
-your description ("raw HTML source for the page") is **`/home/eddie/jobbot/JobBot.html`** — the
+your description ("raw HTML source for the page") is **`JobBot.html`** (repo root) — the
 624 KB bundled Claude-Design mockup that is already on record as the Matches source of truth,
 and which the live app's Matches board was built from on 2026-07-04.
 
